@@ -1,0 +1,15 @@
+{# ./templates/about.html #} {% extends "base.html" %} {% block title %}About - Flask File Explorer{% endblock %} {% block sidebar %}
+<div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+  <h5>About</h5>
+  <!-- You can add specific buttons or links for the About page if needed -->
+</div>
+<ul class="list-group list-group-flush" id="directory-list">
+  <!-- Optionally, you can leave this empty or customize -->
+</ul>
+{% endblock %} {% block content %}
+<div class="p-4">
+  <h2>About This Application</h2>
+  <p>This is a Flask-based file explorer application with features like directory listing, file viewing, and preferences storage.</p>
+  <!-- Add more about content as needed -->
+</div>
+{% endblock %}

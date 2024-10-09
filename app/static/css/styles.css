@@ -1,0 +1,70 @@
+/* ./static/css/styles.css */
+
+#file-explorer {
+  overflow-y: auto;
+  height: 100%;
+}
+
+#directory-list,
+.nested-list {
+  list-style-type: none; /* Remove default bullets */
+  padding-left: 0; /* Remove default padding */
+  margin: 0; /* Remove default margin */
+}
+
+#directory-list li,
+.nested-list li {
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+#directory-list li:hover,
+.nested-list li:hover {
+  background-color: #f0f0f0;
+}
+
+#content-area {
+  resize: none;
+  padding: 20px;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+/* Indent nested lists for better readability */
+.nested-list {
+  list-style-type: none; /* Remove bullets */
+  padding-left: 20px; /* Indentation */
+  margin-top: 5px; /* Spacing */
+}
+
+.folder-item,
+.file-item {
+  /* Removed flex display to allow proper nesting */
+}
+
+.toggle-icon {
+  width: 16px; /* Adjust as needed */
+  text-align: center;
+  transition: transform 0.2s; /* Optional: Keep transition for smoothness */
+}
+
+.folder-icon {
+  margin-right: 8px;
+}
+
+.file-item i {
+  margin-right: 8px;
+}
+
+/* Prevent text selection on icons */
+.toggle-icon,
+.folder-icon {
+  user-select: none;
+}
+
+/* Remove rotation for expanded folders (Option 1) */
+/*
+.folder-item.expanded .toggle-icon {
+  transform: rotate(90deg);
+}
+*/

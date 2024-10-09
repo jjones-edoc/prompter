@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# virtual environment
+penv
+
 # Distribution / packaging
 .Python
 build/
@@ -25,6 +28,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# ignore db files
+*.db
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

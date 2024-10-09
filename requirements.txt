@@ -1,0 +1,4 @@
+pathspec
+requests
+beautifulsoup4
+flask

@@ -1,0 +1,16 @@
+{# ./templates/index.html #} {% extends "base.html" %} {% block title %}Home - Flask File Explorer{% endblock %} {% block sidebar %}
+<div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+  <h5>Explorer</h5>
+  <button class="btn btn-sm btn-primary" id="select-folder"><i class="fa fa-folder-open"></i></button>
+</div>
+<ul class="list-group list-group-flush" id="directory-list">
+  <!-- Dynamically populated -->
+</ul>
+{% endblock %} {% block content %}
+<textarea class="form-control h-100" id="content-area" readonly></textarea>
+{% endblock %} {% block scripts_extra %}
+<script>
+  const LAST_PATH = {{ last_path | tojson | safe }};
+  console.log('LAST_PATH:', LAST_PATH); // Debugging log
+</script>
+{% endblock %}
