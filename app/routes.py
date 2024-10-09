@@ -1,7 +1,7 @@
 # ./app/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, current_app
-from .db import get_db, get_preference, set_preference  # Import new functions
+from .db import get_db, get_preference, set_preference, get_selected_files, add_selected_file, remove_selected_file
 from .utils import is_text_file, parse_gitignore
 from pathlib import Path
 import os
@@ -12,13 +12,44 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    last_path = get_preference('last_path')  # Use get_preference
-    return render_template('index.html', last_path=last_path)
+    last_path = get_preference('last_path') or '/'
+    selected_files = get_selected_files()
+    return render_template('index.html', last_path=last_path, selected_files=selected_files)
 
 
 @main_bp.route('/about')
 def about():
     return render_template('about.html')
+
+
+@main_bp.route('/select_file', methods=['POST'])
+def select_file():
+    data = request.get_json()
+    file_path = data.get('file_path')
+
+    if not file_path:
+        return jsonify({'error': 'No file_path provided'}), 400
+
+    success = add_selected_file(file_path)
+    if success:
+        return jsonify({'message': 'File selected'}), 200
+    else:
+        return jsonify({'error': 'Failed to select file'}), 500
+
+
+@main_bp.route('/deselect_file', methods=['POST'])
+def deselect_file():
+    data = request.get_json()
+    file_path = data.get('file_path')
+
+    if not file_path:
+        return jsonify({'error': 'No file_path provided'}), 400
+
+    success = remove_selected_file(file_path)
+    if success:
+        return jsonify({'message': 'File deselected'}), 200
+    else:
+        return jsonify({'error': 'Failed to deselect file'}), 500
 
 
 @main_bp.route('/list_directory', methods=['POST'])

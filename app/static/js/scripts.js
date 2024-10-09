@@ -1,9 +1,9 @@
 // ./static/js/scripts.js
 
 $(document).ready(function () {
-  console.log("scripts.js loaded"); // Debugging log
+  // Assume SELECTED_FILES is defined globally via the template
+  let selectedFiles = new Set(SELECTED_FILES);
 
-  // Function to list directory contents
   function listDirectory(path, parentElement, source = "folder_click") {
     $.ajax({
       url: "/list_directory",
@@ -27,24 +27,29 @@ $(document).ready(function () {
         directories.forEach(function (dir) {
           const dirPath = osPathJoin(currentPath, dir);
           const listItem = $(`
-                        <li class="folder-item" data-path="${dirPath}">
-                            <i class="fa fa-chevron-right me-2 toggle-icon"></i>
-                            <i class="fa fa-folder me-2 folder-icon"></i>
-                            ${dir}
-                        </li>
-                    `);
+            <li class="folder-item" data-path="${dirPath}">
+              <i class="fa fa-chevron-right me-2 toggle-icon"></i>
+              <i class="fa fa-folder me-2 folder-icon"></i>
+              ${dir}
+            </li>
+          `);
           newList.append(listItem);
         });
 
         // List files
         files.forEach(function (file) {
           const filePath = osPathJoin(currentPath, file);
+          const isSelected = selectedFiles.has(filePath);
+          const selectIcon = isSelected
+            ? `<i class="fa fa-minus deselect-icon"></i>` // Changed to fa-minus
+            : `<i class="fa fa-plus select-icon"></i>`;
           const listItem = $(`
-                        <li class="file-item" data-path="${filePath}">
-                            <i class="fa fa-file me-2"></i>
-                            ${file}
-                        </li>
-                    `);
+            <li class="file-item ${isSelected ? "selected-file" : ""}" data-path="${filePath}">
+              <i class="fa fa-file me-2"></i>
+              ${file}
+              ${selectIcon}
+            </li>
+          `);
           newList.append(listItem);
         });
 
@@ -123,12 +128,90 @@ $(document).ready(function () {
     }
   });
 
+  // Handle click on file item (to read content)
   $("#directory-list").on("click", ".file-item", function (e) {
+    // Check if the click was on the icon
+    if ($(e.target).hasClass("select-icon") || $(e.target).hasClass("deselect-icon")) {
+      // Click was on the icon, do not trigger readFile
+      return;
+    }
+
     e.stopPropagation(); // Prevent event bubbling
     const fileItem = $(this);
     const path = fileItem.data("path");
     readFile(path);
   });
+
+  // Handle click on select icon
+  $("#directory-list").on("click", ".select-icon", function (e) {
+    e.stopPropagation(); // Prevent event bubbling
+    const fileItem = $(this).closest(".file-item");
+    const path = fileItem.data("path");
+
+    // Send AJAX request to select the file
+    $.ajax({
+      url: "/select_file",
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ file_path: path }),
+      success: function (response) {
+        if (response.error) {
+          alert(response.error);
+          return;
+        }
+        // Update the selectedFiles set and redraw the item
+        selectedFiles.add(path);
+        redrawFileItem(fileItem, path, true);
+        console.log(`Selected file: ${path}`);
+      },
+      error: function (xhr) {
+        alert(xhr.responseJSON.error);
+      },
+    });
+  });
+
+  // Handle click on deselect icon
+  $("#directory-list").on("click", ".deselect-icon", function (e) {
+    e.stopPropagation(); // Prevent event bubbling
+    const fileItem = $(this).closest(".file-item");
+    const path = fileItem.data("path");
+
+    // Send AJAX request to deselect the file
+    $.ajax({
+      url: "/deselect_file",
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify({ file_path: path }),
+      success: function (response) {
+        if (response.error) {
+          alert(response.error);
+          return;
+        }
+        // Update the selectedFiles set and redraw the item
+        selectedFiles.delete(path);
+        redrawFileItem(fileItem, path, false);
+        console.log(`Deselected file: ${path}`);
+      },
+      error: function (xhr) {
+        alert(xhr.responseJSON.error);
+      },
+    });
+  });
+
+  // Function to redraw a file item
+  function redrawFileItem(fileItem, path, isSelected) {
+    const selectIcon = isSelected
+      ? `<i class="fa fa-minus deselect-icon"></i>` // Deselect icon
+      : `<i class="fa fa-plus select-icon"></i>`; // Select icon
+    const newItem = $(`
+    <li class="file-item ${isSelected ? "selected-file" : ""}" data-path="${path}">
+      <i class="fa fa-file me-2"></i>
+      ${path.split(/[/\\]/).pop()}  <!-- Extracting just the file name -->
+      ${selectIcon}
+    </li>
+  `);
+    fileItem.replaceWith(newItem);
+  }
 
   // Utility functions for path handling
   function osPathJoin(...args) {

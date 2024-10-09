@@ -3,6 +3,7 @@
 import sqlite3
 from flask import g, current_app
 import logging
+import json
 
 
 def get_db():
@@ -91,3 +92,39 @@ def set_preference(key, value):
     except sqlite3.Error as e:
         logging.error(f"Failed to set preference {key}: {e}")
         return False
+
+
+def get_selected_files():
+    """
+    Retrieves the list of selected files from the app_preferences table.
+    Returns an empty list if not set or on error.
+    """
+    selected = get_preference("selected_files")
+    if selected:
+        try:
+            return json.loads(selected)
+        except json.JSONDecodeError:
+            logging.error("Failed to decode 'selected_files' JSON.")
+    return []
+
+
+def add_selected_file(file_path):
+    """
+    Adds a file path to the selected_files list.
+    """
+    selected = get_selected_files()
+    if file_path not in selected:
+        selected.append(file_path)
+        return set_preference("selected_files", json.dumps(selected))
+    return True
+
+
+def remove_selected_file(file_path):
+    """
+    Removes a file path from the selected_files list.
+    """
+    selected = get_selected_files()
+    if file_path in selected:
+        selected.remove(file_path)
+        return set_preference("selected_files", json.dumps(selected))
+    return True

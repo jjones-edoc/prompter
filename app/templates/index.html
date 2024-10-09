@@ -11,6 +11,8 @@
 {% endblock %} {% block scripts_extra %}
 <script>
   const LAST_PATH = {{ last_path | tojson | safe }};
-  console.log('LAST_PATH:', LAST_PATH); // Debugging log
+  const SELECTED_FILES = {{ selected_files | tojson | safe }};
+  console.log('LAST_PATH:', LAST_PATH);
+  console.log('SELECTED_FILES:', SELECTED_FILES);
 </script>
 {% endblock %}
