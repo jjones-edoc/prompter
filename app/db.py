@@ -3,6 +3,7 @@
 import sqlite3
 from flask import g, current_app
 import logging
+import os
 import json
 
 
@@ -37,9 +38,16 @@ def init_db(app):
                         value TEXT
                     )
                 ''')
+                db.execute('''
+                    CREATE TABLE IF NOT EXISTS files (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        path TEXT NOT NULL UNIQUE
+                    )
+                ''')
                 db.commit()
                 logging.debug(
-                    "Initialized the SQLite database and ensured app_preferences table exists.")
+                    "Initialized the SQLite database and ensured app_preferences and files tables exist.")
             except sqlite3.Error as e:
                 logging.error(f"Failed to initialize database: {e}")
         app.teardown_appcontext(close_db)
@@ -94,37 +102,123 @@ def set_preference(key, value):
         return False
 
 
+def get_files():
+    """
+    Retrieves a list of all files.
+    Returns a list of dictionaries with 'id' and 'name'.
+    """
+    db = get_db()
+    if db is None:
+        logging.error("Database connection is not available.")
+        return []
+
+    try:
+        cursor = db.execute('SELECT id, name FROM files')
+        files = [{'id': row['id'], 'name': row['name']}
+                 for row in cursor.fetchall()]
+        logging.debug(f"Retrieved {len(files)} files.")
+        return files
+    except sqlite3.Error as e:
+        logging.error(f"Database error while retrieving files: {e}")
+    return []
+
+
 def get_selected_files():
     """
-    Retrieves the list of selected files from the app_preferences table.
-    Returns an empty list if not set or on error.
+    Retrieves a list of all selected files as full paths.
+    Returns a list of strings.
     """
-    selected = get_preference("selected_files")
-    if selected:
-        try:
-            return json.loads(selected)
-        except json.JSONDecodeError:
-            logging.error("Failed to decode 'selected_files' JSON.")
+    db = get_db()
+    if db is None:
+        logging.error("Database connection is not available.")
+        return []
+
+    try:
+        cursor = db.execute('SELECT path, name FROM files')
+        selected_files = [os.path.join(row['path'], row['name'])
+                          for row in cursor.fetchall()]
+        logging.debug(f"Retrieved {len(selected_files)} selected files.")
+        return selected_files
+    except sqlite3.Error as e:
+        logging.error(f"Database error while retrieving selected files: {e}")
     return []
+
+
+def get_file_path_by_id(file_id):
+    """
+    Retrieves the full file path by its ID.
+    Returns the combined path and name or None if not found.
+    """
+    db = get_db()
+    if db is None:
+        logging.error("Database connection is not available.")
+        return None
+
+    try:
+        cursor = db.execute(
+            'SELECT path, name FROM files WHERE id = ?', (file_id,))
+        row = cursor.fetchone()
+        if row:
+            full_path = os.path.join(row['path'], row['name'])
+            logging.debug(f"Retrieved file path for ID {file_id}: {full_path}")
+            return full_path
+        else:
+            logging.debug(f"No file found with ID: {file_id}")
+    except sqlite3.Error as e:
+        logging.error(
+            f"Database error while retrieving file ID {file_id}: {e}")
+    return None
 
 
 def add_selected_file(file_path):
     """
-    Adds a file path to the selected_files list.
+    Adds a file to the files table.
+    Parses the file_path into directory path and file name.
+    Returns True on success, False otherwise.
     """
-    selected = get_selected_files()
-    if file_path not in selected:
-        selected.append(file_path)
-        return set_preference("selected_files", json.dumps(selected))
-    return True
+    db = get_db()
+    if db is None:
+        logging.error("Database connection is not available.")
+        return False
+
+    try:
+        directory, name = os.path.split(file_path)
+        db.execute('''
+            INSERT INTO files (name, path)
+            VALUES (?, ?)
+            ON CONFLICT(path) DO NOTHING
+        ''', (name, directory))
+        db.commit()
+        logging.debug(f"Added selected file: {name} at {directory}")
+        return True
+    except sqlite3.Error as e:
+        logging.error(f"Failed to add selected file {file_path}: {e}")
+        return False
 
 
 def remove_selected_file(file_path):
     """
-    Removes a file path from the selected_files list.
+    Removes a file from the files table based on its file_path.
+    Returns True on success, False otherwise.
     """
-    selected = get_selected_files()
-    if file_path in selected:
-        selected.remove(file_path)
-        return set_preference("selected_files", json.dumps(selected))
-    return True
+    db = get_db()
+    if db is None:
+        logging.error("Database connection is not available.")
+        return False
+
+    try:
+        directory, name = os.path.split(file_path)
+        cursor = db.execute('''
+            DELETE FROM files
+            WHERE path = ? AND name = ?
+        ''', (directory, name))
+        db.commit()
+        if cursor.rowcount > 0:
+            logging.debug(f"Removed selected file: {name} from {directory}")
+            return True
+        else:
+            logging.debug(f"No file found to remove for path: {file_path}")
+            return False
+    except sqlite3.Error as e:
+        logging.error(f"Failed to remove selected file {file_path}: {e}")
+        return False
