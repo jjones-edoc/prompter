@@ -1,19 +1,18 @@
-# app/routes.py
+# ./app/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, current_app
-from .db import get_db
+from .db import get_db, get_preference, set_preference  # Import new functions
 from .utils import is_text_file, parse_gitignore
 from pathlib import Path
 import os
 import logging
-import sqlite3
 
 main_bp = Blueprint('main', __name__)
 
 
 @main_bp.route('/')
 def index():
-    last_path = read_last_path()
+    last_path = get_preference('last_path')  # Use get_preference
     return render_template('index.html', last_path=last_path)
 
 
@@ -79,9 +78,12 @@ def list_directory():
 
         # Save the current path as the last accessed path only if the source is 'select_folder'
         if source == 'select_folder':
-            write_last_path(str(dir_path.resolve()))
-            logging.debug(f"Updated last_path to: {
-                          dir_path.resolve()} based on source: {source}")
+            success = set_preference('last_path', str(dir_path.resolve()))
+            if success:
+                logging.debug(f"Updated last_path to: {
+                              dir_path.resolve()} based on source: {source}")
+            else:
+                logging.error("Failed to update last_path.")
 
         return jsonify({
             'directories': directories,
@@ -119,52 +121,3 @@ def read_file():
     except Exception as e:
         logging.error(f"Error reading file: {e}")
         return jsonify({'error': str(e)}), 500
-
-
-def read_last_path():
-    """
-    Reads the last accessed path from the app_preferences table.
-    Returns None if not set or invalid.
-    """
-    db = get_db()
-    if db is None:
-        return None
-
-    try:
-        cursor = db.execute(
-            'SELECT value FROM app_preferences WHERE key = ?', ('last_path',))
-        row = cursor.fetchone()
-        if row:
-            path = row['value']
-            resolved_path = Path(path)
-            if resolved_path.is_dir():
-                logging.debug(f"Last path loaded from DB: {path}")
-                return str(resolved_path.resolve())
-            else:
-                logging.warning(f"Stored last_path is invalid: {path}")
-        else:
-            logging.debug("No last_path found in DB.")
-    except sqlite3.Error as e:
-        logging.error(f"Database error: {e}")
-    return None
-
-
-def write_last_path(path):
-    """
-    Writes the given path to the app_preferences table.
-    """
-    db = get_db()
-    if db is None:
-        logging.error("Database connection is not available.")
-        return
-
-    try:
-        db.execute('''
-            INSERT INTO app_preferences (key, value)
-            VALUES (?, ?)
-            ON CONFLICT(key) DO UPDATE SET value=excluded.value
-        ''', ('last_path', path))
-        db.commit()
-        logging.debug(f"Last path saved to DB: {path}")
-    except sqlite3.Error as e:
-        logging.error(f"Failed to write last_path to DB: {e}")
