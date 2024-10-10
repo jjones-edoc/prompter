@@ -3,7 +3,7 @@
 from flask import Flask
 import logging
 from .config import Config
-from .db import init_db
+from .db.db import init_db
 from .utils import initialize_magic
 from .routes import main_bp
 from .explorer_routes import explorer_bp

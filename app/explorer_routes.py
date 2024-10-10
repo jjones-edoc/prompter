@@ -1,14 +1,13 @@
 # ./app/explorer_routes.py
 
 from flask import Blueprint, request, jsonify, current_app
-from .db import (
-    get_preference,
-    set_preference,
+from .db.files import (
     get_selected_files,
     add_selected_file,
     remove_selected_file,
     db_clear_all_selected_files,
 )
+from .db.preferences import get_preference, set_preference
 from .utils import is_text_file, parse_gitignore
 from pathlib import Path
 import logging

@@ -1,0 +1,44 @@
+.slice-card {
+  position: relative;
+  margin-bottom: 10px;
+  max-height: 200px; /* Constrain height */
+  overflow: hidden;
+}
+.slice-card .card-text {
+  max-height: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slice-buttons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.prompt-slice {
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  cursor: grab;
+  max-height: 150px; /* Shorter height for easier rearrangement */
+  overflow: hidden;
+}
+.prompt-slice.dragging {
+  opacity: 0.5;
+}
+.toast-container {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 1055;
+}
+.final-prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+pre {
+  white-space: pre-wrap; /* Allow wrapping */
+  word-wrap: break-word;
+}
