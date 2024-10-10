@@ -14,6 +14,7 @@
 {% endblock %} {% block content %}
 <textarea class="form-control h-100" id="content-area" readonly></textarea>
 {% endblock %} {% block scripts_extra %}
+<script src="{{ url_for('static', filename='js/explorer.js') }}"></script>
 <script>
   const LAST_PATH = {{ last_path | tojson | safe }};
   const SELECTED_FILES = {{ selected_files | tojson | safe }};
