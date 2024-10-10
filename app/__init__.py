@@ -1,4 +1,4 @@
-# app/__init__.py
+# ./app/__init__.py
 
 from flask import Flask
 import logging
@@ -6,6 +6,7 @@ from .config import Config
 from .db import init_db
 from .utils import initialize_magic
 from .routes import main_bp
+from .explorer_routes import explorer_bp
 
 
 def create_app():
@@ -28,5 +29,6 @@ def create_app():
 
     # Register Blueprints
     app.register_blueprint(main_bp)
+    app.register_blueprint(explorer_bp)
 
     return app

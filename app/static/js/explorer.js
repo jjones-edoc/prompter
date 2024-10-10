@@ -27,7 +27,7 @@ $(document).ready(() => {
 
   // Function to list directory contents
   const listDirectory = (path, parent, source) => {
-    ajaxPost("/list_directory", { path, source })
+    ajaxPost("/explorer/list_directory", { path, source })
       .done(({ error, current_path, directories, files }) => {
         if (error) return alert(error);
         const $list = $('<ul class="nested-list"></ul>');
@@ -46,7 +46,7 @@ $(document).ready(() => {
 
   // Function to read file content
   const readFile = (filePath) => {
-    ajaxPost("/read_file", { file_path: filePath })
+    ajaxPost("/explorer/read_file", { file_path: filePath })
       .done(({ error, content }) => {
         if (error) return alert(error);
         $contentArea.val(content);
@@ -61,7 +61,7 @@ $(document).ready(() => {
 
   // Clear all selected files
   $clearSelection.on("click", () => {
-    ajaxPost("/clear_all_selected_files", {})
+    ajaxPost("/explorer/clear_all_selected_files", {})
       .done(({ error }) => {
         if (error) return alert(error);
         selectedFiles.clear();
@@ -123,7 +123,7 @@ $(document).ready(() => {
     const $fileItem = $(this).closest(".file-item");
     const path = $fileItem.data("path");
     const isSelecting = $(this).hasClass("select-icon");
-    const url = isSelecting ? "/select_file" : "/deselect_file";
+    const url = isSelecting ? "/explorer/select_file" : "/explorer/deselect_file";
 
     ajaxPost(url, { file_path: path })
       .done(({ error }) => {
