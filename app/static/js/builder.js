@@ -1,14 +1,6 @@
 $(document).ready(() => {
   hljs.highlightAll();
 
-  // Initial Demo Data
-  const demoSlices = [
-    { id: 1, type: "text", content: "Explain the theory of relativity." },
-    { id: 2, type: "python", content: 'def hello_world():\n    print("Hello, World!")', language: "python" },
-    { id: 3, type: "text", content: "Summarize the key points of the last meeting." },
-    { id: 4, type: "javascript", content: 'console.log("Hello, World!");', language: "javascript" },
-  ];
-
   // State
   let slices = [];
   let promptSlices = [];
@@ -54,17 +46,18 @@ $(document).ready(() => {
     localStorage.setItem("slices", JSON.stringify(slices));
   }
 
-  function loadSlicesFromLocalStorage() {
-    const storedSlices = localStorage.getItem("slices");
-    if (storedSlices) {
-      slices = JSON.parse(storedSlices);
-    } else {
-      slices = demoSlices;
-      saveSlicesToLocalStorage();
-    }
+  function loadSlices() {
+    ajaxPost("/builder/get_all", {})
+      .done(({ error, all_slices }) => {
+        if (error) return alert(error);
+        slices = all_slices;
+        renderSlicesList();
+      })
+      .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred"));
   }
 
   function renderSlicesList(filter = "") {
+    console.log(slices);
     slicesListEl.innerHTML = "";
     const filteredSlices = slices.filter((slice) => {
       return slice.content.toLowerCase().includes(filter.toLowerCase()) || slice.type.toLowerCase().includes(filter.toLowerCase());
@@ -104,6 +97,7 @@ $(document).ready(() => {
 
   function renderPromptArea() {
     promptAreaEl.innerHTML = "";
+    console.log(promptSlices);
     promptSlices.forEach((slice) => {
       const sliceDiv = document.createElement("div");
       sliceDiv.className = "prompt-slice";
@@ -326,7 +320,7 @@ $(document).ready(() => {
   }
 
   // Initialize
-  loadSlicesFromLocalStorage();
+  loadSlices();
   renderSlicesList();
   renderPromptArea();
-})();
+});

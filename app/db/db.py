@@ -1,4 +1,4 @@
-# ./app/db.py
+# ./app/db/db.py
 
 import sqlite3
 from flask import g, current_app
@@ -44,9 +44,16 @@ def init_db(app):
                         UNIQUE(name, path)
                     )
                 ''')
+                db.execute('''
+                    CREATE TABLE IF NOT EXISTS slices (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        type TEXT NOT NULL,
+                        content TEXT NOT NULL
+                    )
+                ''')
                 db.commit()
                 logging.debug(
-                    "Initialized the SQLite database and ensured app_preferences and files tables exist.")
+                    "Initialized the SQLite database and ensured tables exist.")
             except sqlite3.Error as e:
                 logging.error(f"Failed to initialize database: {e}")
         app.teardown_appcontext(close_db)

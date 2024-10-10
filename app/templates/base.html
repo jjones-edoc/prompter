@@ -59,14 +59,14 @@
     <div class="container-fluid" style="height: calc(100vh - 56px)">
       <div class="row h-100">
         <!-- Left Container: File Explorer -->
-        <div class="col-2 bg-light border-end" id="file-explorer">
+        <div class="col-3 bg-light border-end" id="file-explorer">
           {% block sidebar %}
           <!-- Sidebar content can be overridden by individual pages if necessary -->
           {% endblock %}
         </div>
 
         <!-- Right Container: File Content -->
-        <div class="col-10" id="file-content">
+        <div class="col-9" id="file-content">
           {% block content %}
           <!-- Page-specific content will be injected here -->
           {% endblock %}

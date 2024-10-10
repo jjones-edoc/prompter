@@ -7,6 +7,7 @@ from .db.db import init_db
 from .utils import initialize_magic
 from .routes import main_bp
 from .explorer_routes import explorer_bp
+from .builder_routes import builder_bp
 
 
 def create_app():
@@ -30,5 +31,6 @@ def create_app():
     # Register Blueprints
     app.register_blueprint(main_bp)
     app.register_blueprint(explorer_bp)
+    app.register_blueprint(builder_bp)
 
     return app

@@ -1,4 +1,4 @@
-# ./app/preferences.py
+# ./app/db/preferences.py
 
 import logging
 from .db import get_db
