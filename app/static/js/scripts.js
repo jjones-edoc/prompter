@@ -82,6 +82,32 @@ $(document).ready(function () {
     });
   }
 
+  // Handle clear all selected items button (clear-selection)
+  $("#clear-selection").on("click", function () {
+    console.log("Clear Selection button clicked"); // Debugging log
+    // Send AJAX request to clear all selected files
+    $.ajax({
+      url: "/clear_all_selected_files",
+      type: "POST",
+      contentType: "application/json",
+      success: function (response) {
+        if (response.error) {
+          alert(response.error);
+          return;
+        }
+        // Clear the selectedFiles set and redraw all file items
+        selectedFiles.clear();
+        $(".file-item").each(function () {
+          redrawFileItem($(this), $(this).data("path"), false);
+        });
+        console.log("Cleared all selected files");
+      },
+      error: function (xhr) {
+        alert(xhr.responseJSON.error);
+      },
+    });
+  });
+
   // Handle folder selection via button
   $("#select-folder").on("click", function () {
     console.log("Select Folder button clicked"); // Debugging log

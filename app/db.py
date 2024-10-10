@@ -42,7 +42,8 @@ def init_db(app):
                     CREATE TABLE IF NOT EXISTS files (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL,
-                        path TEXT NOT NULL UNIQUE
+                        path TEXT NOT NULL,
+                        UNIQUE(name, path)
                     )
                 ''')
                 db.commit()
@@ -186,7 +187,7 @@ def add_selected_file(file_path):
         db.execute('''
             INSERT INTO files (name, path)
             VALUES (?, ?)
-            ON CONFLICT(path) DO NOTHING
+            ON CONFLICT(name, path) DO NOTHING
         ''', (name, directory))
         db.commit()
         logging.debug(f"Added selected file: {name} at {directory}")
@@ -221,4 +222,26 @@ def remove_selected_file(file_path):
             return False
     except sqlite3.Error as e:
         logging.error(f"Failed to remove selected file {file_path}: {e}")
+        return False
+
+
+def db_clear_all_selected_files():
+    """
+    Removes all files from the files table.
+    Returns True on success, False otherwise.
+    """
+    db = get_db()
+    if db is None:
+        logging.error("Database connection is not available.")
+        return False
+
+    try:
+        db.execute('''
+            DELETE FROM files
+        ''')
+        db.commit()
+        logging.debug("Cleared all selected files.")
+        return True
+    except sqlite3.Error as e:
+        logging.error(f"Failed to clear selected files: {e}")
         return False

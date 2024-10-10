@@ -1,7 +1,7 @@
 # ./app/routes.py
 
 from flask import Blueprint, render_template, request, jsonify, current_app
-from .db import get_db, get_preference, set_preference, get_selected_files, add_selected_file, remove_selected_file
+from .db import get_preference, set_preference, get_selected_files, add_selected_file, remove_selected_file, db_clear_all_selected_files
 from .utils import is_text_file, parse_gitignore
 from pathlib import Path
 import os
@@ -22,18 +22,34 @@ def about():
     return render_template('about.html')
 
 
+@main_bp.route('/clear_all_selected_files', methods=['POST'])
+def clear_all_selected_files():
+    success = db_clear_all_selected_files()
+    if success:
+        logging.info("All selected files cleared.")
+        return jsonify({'message': 'All selected files cleared'}), 200
+    else:
+        logging.error("Failed to clear all selected files.")
+        return jsonify({'error': 'Failed to clear all selected files'}), 500
+
+
 @main_bp.route('/select_file', methods=['POST'])
 def select_file():
     data = request.get_json()
     file_path = data.get('file_path')
 
+    logging.debug(f"Received select_file request for file_path: {file_path}")
+
     if not file_path:
+        logging.warning("No file_path provided in select_file request")
         return jsonify({'error': 'No file_path provided'}), 400
 
     success = add_selected_file(file_path)
     if success:
+        logging.info(f"File selected: {file_path}")
         return jsonify({'message': 'File selected'}), 200
     else:
+        logging.error(f"Failed to select file: {file_path}")
         return jsonify({'error': 'Failed to select file'}), 500
 
 
@@ -42,13 +58,18 @@ def deselect_file():
     data = request.get_json()
     file_path = data.get('file_path')
 
+    logging.debug(f"Received deselect_file request for file_path: {file_path}")
+
     if not file_path:
+        logging.warning("No file_path provided in deselect_file request")
         return jsonify({'error': 'No file_path provided'}), 400
 
     success = remove_selected_file(file_path)
     if success:
+        logging.info(f"File deselected: {file_path}")
         return jsonify({'message': 'File deselected'}), 200
     else:
+        logging.error(f"Failed to deselect file: {file_path}")
         return jsonify({'error': 'Failed to deselect file'}), 500
 
 
