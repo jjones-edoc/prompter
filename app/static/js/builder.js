@@ -11,8 +11,6 @@ $(document).ready(() => {
   const addSliceForm = document.getElementById("addSliceForm");
   const sliceTypeEl = document.getElementById("sliceType");
   const sliceContentEl = document.getElementById("sliceContent");
-  const sliceFileEl = document.getElementById("sliceFile");
-  const fileInputGroupEl = document.getElementById("fileInputGroup");
   const buildPromptBtn = document.getElementById("buildPromptBtn");
   const finalPromptEl = document.getElementById("finalPrompt");
   const searchInputEl = document.getElementById("searchInput");
@@ -40,10 +38,6 @@ $(document).ready(() => {
     toastEl.addEventListener("hidden.bs.toast", () => {
       toastEl.remove();
     });
-  }
-
-  function saveSlicesToLocalStorage() {
-    localStorage.setItem("slices", JSON.stringify(slices));
   }
 
   function loadSlices() {
@@ -159,61 +153,27 @@ $(document).ready(() => {
     e.preventDefault();
     const type = sliceTypeEl.value;
     let content = sliceContentEl.value.trim();
-    let language = null;
 
-    if (type === "file") {
-      const file = sliceFileEl.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          content = event.target.result;
-          const fileExtension = file.name.split(".").pop().toLowerCase();
-          language = getLanguageFromExtension(fileExtension) || "plaintext";
-          const newSlice = {
-            id: Date.now(),
-            type: "code",
-            content: content,
-            language: language,
-          };
-          slices.push(newSlice);
-          saveSlicesToLocalStorage();
-          renderSlicesList(searchInputEl.value);
-          showToast("Slice added successfully!");
-          addSliceForm.reset();
-          fileInputGroupEl.classList.add("d-none");
-          document.getElementById("addSliceModal").querySelector(".btn-close").click();
-        };
-        reader.readAsText(file);
-        return;
-      } else {
-        showToast("Please select a file.", "warning");
-        return;
-      }
-    }
-
-    if (type !== "text" && type !== "file") {
-      // It's a programming language slice
-      language = type; // Assuming type corresponds to language
-    }
-
-    if (type !== "file" && !content) {
+    if (!content) {
       showToast("Content cannot be empty.", "warning");
       return;
     }
 
     const newSlice = {
-      id: Date.now(),
       type: type,
       content: content,
-      language: language,
     };
-    slices.push(newSlice);
-    saveSlicesToLocalStorage();
-    renderSlicesList(searchInputEl.value);
-    showToast("Slice added successfully!");
-    addSliceForm.reset();
-    fileInputGroupEl.classList.add("d-none");
-    document.getElementById("addSliceModal").querySelector(".btn-close").click();
+
+    ajaxPost("/builder/add", newSlice)
+      .done(({ error, slice }) => {
+        if (error) return alert(error);
+        slices.push(slice);
+        renderSlicesList(searchInputEl.value);
+        showToast("Slice added successfully!");
+        addSliceForm.reset();
+        document.getElementById("addSliceModal").querySelector(".btn-close").click();
+      })
+      .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred"));
   });
 
   slicesListEl.addEventListener("click", function (e) {
@@ -231,13 +191,18 @@ $(document).ready(() => {
 
     if (e.target.closest(".delete-slice-btn")) {
       const sliceId = parseInt(e.target.closest(".delete-slice-btn").dataset.id);
-      slices = slices.filter((s) => s.id !== sliceId);
-      saveSlicesToLocalStorage();
-      renderSlicesList(searchInputEl.value);
-      // Also remove from prompt if present
-      promptSlices = promptSlices.filter((s) => s.id !== sliceId);
-      renderPromptArea();
-      showToast("Slice deleted.");
+      // make ajax call to delete slice
+      ajaxPost("/builder/delete", { id: sliceId })
+        .done(({ error }) => {
+          if (error) return alert(error);
+          slices = slices.filter((s) => s.id !== sliceId);
+          renderSlicesList(searchInputEl.value);
+          // Also remove from prompt if present
+          promptSlices = promptSlices.filter((s) => s.id !== sliceId);
+          renderPromptArea();
+          showToast("Slice deleted.");
+        })
+        .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred"));
     }
   });
 
@@ -305,19 +270,6 @@ $(document).ready(() => {
     finalPromptEl.textContent = "";
     showToast("Final prompt cleared.");
   });
-
-  // Helper function to determine language from file extension
-  function getLanguageFromExtension(extension) {
-    const mapping = {
-      py: "python",
-      go: "go",
-      css: "css",
-      js: "javascript",
-      html: "html",
-      cs: "csharp",
-    };
-    return mapping[extension] || "plaintext";
-  }
 
   // Initialize
   loadSlices();

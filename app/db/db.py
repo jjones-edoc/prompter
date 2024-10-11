@@ -37,17 +37,10 @@ def init_db(app):
                     )
                 ''')
                 db.execute('''
-                    CREATE TABLE IF NOT EXISTS files (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL,
-                        path TEXT NOT NULL,
-                        UNIQUE(name, path)
-                    )
-                ''')
-                db.execute('''
                     CREATE TABLE IF NOT EXISTS slices (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        type TEXT NOT NULL,
+                        file TEXT NOT NULL DEFAULT '',   
+                        type TEXT NOT NULL DEFAULT 'text',
                         content TEXT NOT NULL
                     )
                 ''')

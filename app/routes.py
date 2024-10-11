@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template
 from .db.preferences import get_preference
-from .db.files import get_selected_files
+from .db.slices import get_selected_files
 
 main_bp = Blueprint('main', __name__)
 

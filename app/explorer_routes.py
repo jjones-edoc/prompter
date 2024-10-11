@@ -1,13 +1,12 @@
 # ./app/explorer_routes.py
 
 from flask import Blueprint, request, jsonify, current_app
-from .db.files import (
-    get_selected_files,
+from .db.slices import (
     add_selected_file,
     remove_selected_file,
     db_clear_all_selected_files,
 )
-from .db.preferences import get_preference, set_preference
+from .db.preferences import set_preference
 from .utils import is_text_file, parse_gitignore
 from pathlib import Path
 import logging
@@ -64,6 +63,11 @@ def deselect_file():
     else:
         logging.error(f"Failed to deselect file: {file_path}")
         return jsonify({'error': 'Failed to deselect file'}), 500
+
+
+@explorer_bp.route('/list_prompt', methods=['POST'])
+def create_list_prompt():
+    return jsonify({'message': 'List prompt created'}), 200
 
 
 @explorer_bp.route('/list_directory', methods=['POST'])

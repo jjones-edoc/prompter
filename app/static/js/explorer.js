@@ -24,6 +24,7 @@ $(document).ready(() => {
   const $contentArea = $("#content-area");
   const $clearSelection = $("#clear-selection");
   const $selectFolder = $("#select-folder");
+  const $listFileBtn = $("#list-files");
 
   // Function to list directory contents
   const listDirectory = (path, parent, source) => {
@@ -78,6 +79,19 @@ $(document).ready(() => {
     if (path) {
       listDirectory(osPathNormalize(path), $directoryList, "select_folder");
     }
+  });
+
+  $listFileBtn.on("click", () => {
+    // make ajax call to create list prompt
+    ajaxPost("/explorer/list_prompt", {})
+      .done(({ error }) => {
+        if (error) return alert(error);
+        // selectedFiles.clear();
+        // $(".file-item").each(function () {
+        //   updateFileItem($(this), false);
+        // });
+      })
+      .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred"));
   });
 
   // Toggle folder expansion
