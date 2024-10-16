@@ -8,9 +8,10 @@ from .utils import initialize_magic
 from .routes import main_bp
 from .explorer_routes import explorer_bp
 from .builder_routes import builder_bp
+from .db.preferences import set_preference
 
 
-def create_app():
+def create_app(current_dir):
     app = Flask(__name__)
     app.config.from_object(Config)
 
@@ -24,6 +25,15 @@ def create_app():
 
     # Initialize the database
     init_db(app)
+
+    with app.app_context():
+        logging.debug(
+            "Setting last_path preference to current directory: %s", current_dir)
+        success = set_preference('last_path', current_dir)
+        if not success:
+            logging.error("Failed to set last_path preference.")
+        else:
+            logging.debug(f"Set last_path preference: {current_dir}")
 
     # Initialize python-magic
     initialize_magic()

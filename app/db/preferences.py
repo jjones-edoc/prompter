@@ -33,7 +33,7 @@ def get_preference(key):
 def set_preference(key, value):
     """
     Sets the value for the given key in the app_preferences table.
-    Inserts a new row or updates the existing one.
+    Updates the value if the key exists, inserts a new row if it doesn't.
     """
     db = get_db()
     if db is None:
@@ -41,13 +41,23 @@ def set_preference(key, value):
         return False
 
     try:
-        db.execute('''
-            INSERT INTO app_preferences (key, value)
-            VALUES (?, ?)
-            ON CONFLICT(key) DO UPDATE SET value=excluded.value
-        ''', (key, value))
+        # Check if the key already exists
+        cursor = db.execute(
+            'SELECT 1 FROM app_preferences WHERE key = ?', (key,))
+        exists = cursor.fetchone()
+
+        if exists:
+            # Update if the key exists
+            db.execute(
+                'UPDATE app_preferences SET value = ? WHERE key = ?', (value, key))
+            logging.debug(f"Updated preference: {key} = {value}")
+        else:
+            # Insert if the key does not exist
+            db.execute(
+                'INSERT INTO app_preferences (key, value) VALUES (?, ?)', (key, value))
+            logging.debug(f"Inserted new preference: {key} = {value}")
+
         db.commit()
-        logging.debug(f"Set preference: {key} = {value}")
         return True
     except sqlite3.Error as e:
         logging.error(f"Failed to set preference {key}: {e}")
