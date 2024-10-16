@@ -25,6 +25,8 @@ $(document).ready(() => {
   const $clearSelection = $("#clear-selection");
   const $selectFolder = $("#select-folder");
   const $listFileBtn = $("#list-files");
+  const $saveFileBtn = $("#save-file"); // Added save button
+  let currentFilePath = null; // Track current file path
 
   // Function to list directory contents
   const listDirectory = (path, parent, source) => {
@@ -51,6 +53,7 @@ $(document).ready(() => {
       .done(({ error, content }) => {
         if (error) return alert(error);
         $contentArea.val(content);
+        currentFilePath = filePath; // Set current file path
       })
       .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred"));
   };
@@ -92,6 +95,24 @@ $(document).ready(() => {
         // });
       })
       .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred"));
+  });
+
+  // Save file content
+  $saveFileBtn.on("click", () => {
+    if (!currentFilePath) {
+      alert("No file is currently selected.");
+      return;
+    }
+    const content = $contentArea.val();
+    ajaxPost("/explorer/save_file", { file_path: currentFilePath, content })
+      .done(({ error, message }) => {
+        if (error) {
+          alert(error);
+        } else {
+          alert(message || "File saved successfully.");
+        }
+      })
+      .fail((xhr) => alert(xhr.responseJSON?.error || "An error occurred while saving the file."));
   });
 
   // Toggle folder expansion

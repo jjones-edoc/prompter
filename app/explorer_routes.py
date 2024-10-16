@@ -170,3 +170,37 @@ def read_file():
     except Exception as e:
         logging.error(f"Error reading file: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@explorer_bp.route('/save_file', methods=['POST'])
+def save_file():
+    data = request.get_json()
+    file_path = data.get('file_path')
+    content = data.get('content')
+
+    logging.debug(f"Received save_file request for file_path: {file_path}")
+
+    if not file_path:
+        logging.warning("No file_path provided in save_file request")
+        return jsonify({'error': 'No file_path provided'}), 400
+
+    if content is None:
+        logging.warning("No content provided in save_file request")
+        return jsonify({'error': 'No content was provided'}), 400
+
+    path = Path(file_path)
+    if not path.is_file():
+        logging.warning(f"File does not exist: {file_path}")
+        return jsonify({'error': 'File does not exist'}), 400
+
+    if not is_text_file(path):
+        logging.warning(f"Attempted to save a non-text file: {file_path}")
+        return jsonify({'error': 'File is not a text file'}), 400
+
+    try:
+        path.write_text(content, encoding='utf-8')
+        logging.info(f"File saved: {file_path}")
+        return jsonify({'message': 'File saved successfully'}), 200
+    except Exception as e:
+        logging.error(f"Error saving file: {e}")
+        return jsonify({'error': str(e)}), 500

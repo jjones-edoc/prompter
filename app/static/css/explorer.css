@@ -18,6 +18,12 @@
   padding: 5px 10px;
 }
 
+#save-file {
+  top: 63px;
+  right: 38px;
+  position: absolute;
+}
+
 #content-area {
   resize: none;
   padding: 20px;
