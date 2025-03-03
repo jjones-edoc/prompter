@@ -2,3 +2,4 @@ flask
 click
 setuptools
 tiktoken
+pathspec
