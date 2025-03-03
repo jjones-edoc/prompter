@@ -1,5 +1,4 @@
-pathspec
-requests
-beautifulsoup4
 flask
-python-magic-bin
+click
+setuptools
+tiktoken
