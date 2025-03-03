@@ -40,7 +40,7 @@
           <form action="{{ url_for('prompt_input') }}" method="POST">
             <input type="hidden" name="current_path" value="{{ current_path }}" />
             <div class="file-explorer">
-              <!-- Tree view for folders and files (lazy loaded) -->
+              <!-- Tree view for folders and files (all loaded at once) -->
               <div class="tree-view">
                 <ul class="tree-root list-unstyled" id="root-folder-contents">
                   {% if parent_path is not none %}
@@ -58,7 +58,7 @@
                     </div>
                   </li>
                   {% endif %}
-                  <li class="py-2 text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading...</li>
+                  <li class="py-2 text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading all files and folders...</li>
                 </ul>
               </div>
             </div>
