@@ -11,8 +11,11 @@
   /* Theme-specific colors */
   --bs-body-color: #212529;
   --bs-body-bg: #fff;
+  --bs-body-color-rgb: 33, 37, 41;
+  --bs-body-bg-rgb: 255, 255, 255;
   --bs-card-bg: #fff;
-  --bs-border-color: #dee2e6;
+  --bs-border-color: #e9ecef;
+  --bs-border-color-rgb: 233, 236, 239;
   --bs-input-bg: #fff;
   --bs-input-color: #212529;
   --bs-form-check-input-bg: #fff;
@@ -25,13 +28,18 @@
   --bs-primary-rgb: 93, 142, 255;
   
   --bs-body-color: #e9ecef;
-  --bs-body-bg: #212529;
-  --bs-card-bg: #343a40;
-  --bs-border-color: #495057;
-  --bs-input-bg: #2b3035;
+  --bs-body-bg: #1a1d21;
+  --bs-body-color-rgb: 233, 236, 239;
+  --bs-body-bg-rgb: 26, 29, 33;
+  --bs-card-bg: #2a2d35;
+  --bs-border-color: #3a3f48;
+  --bs-border-color-rgb: 58, 63, 72;
+  --bs-input-bg: #22252c;
   --bs-input-color: #e9ecef;
-  --bs-form-check-input-bg: #2b3035;
+  --bs-form-check-input-bg: #22252c;
   --bs-breadcrumb-color: #adb5bd;
+  --bs-light-rgb: 53, 58, 64;
+  --bs-light: #35383f;
 }
 
 /* Override Bootstrap's primary and secondary colors */
@@ -66,26 +74,111 @@ body {
   color: var(--bs-body-color);
   background-color: var(--bs-body-bg);
   transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
 }
 
 .card {
   background-color: var(--bs-card-bg);
   border-color: var(--bs-border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card-header {
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 1rem 1.25rem;
+}
+
+.card-body {
+  padding: 1.5rem;
 }
 
 .form-control, .input-group-text {
   background-color: var(--bs-input-bg);
   color: var(--bs-input-color);
   border-color: var(--bs-border-color);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+textarea.form-control {
+  line-height: 1.6;
+  font-size: 1rem;
 }
 
 .form-check-input {
   background-color: var(--bs-form-check-input-bg);
   border-color: var(--bs-border-color);
+  cursor: pointer;
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.form-check-input:checked {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.form-check-label {
+  padding-left: 0.25rem;
+  user-select: none;
+}
+
+.breadcrumb {
+  background-color: rgba(var(--bs-primary-rgb), 0.05);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
 }
 
 .breadcrumb-item a {
   color: var(--bs-breadcrumb-color);
+  text-decoration: none;
+  transition: color 0.15s ease-in-out;
+}
+
+.breadcrumb-item a:hover {
+  color: var(--bs-primary);
+  text-decoration: underline;
+}
+
+/* Buttons styling */
+.btn {
+  padding: 0.6rem 1.25rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  box-shadow: 0 2px 4px rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 4px 8px rgba(var(--bs-primary-rgb), 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  box-shadow: 0 2px 4px rgba(var(--bs-secondary-rgb), 0.2);
+}
+
+.btn-secondary:hover {
+  box-shadow: 0 4px 8px rgba(var(--bs-secondary-rgb), 0.3);
+  transform: translateY(-1px);
+}
+
+.btn .fas, .btn .fa {
+  margin-right: 0.4rem;
 }
 
 /* Theme toggle button */
@@ -97,11 +190,34 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  color: var(--bs-primary);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .theme-toggle:hover {
-  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  background-color: rgba(var(--bs-primary-rgb), 0.15);
+  transform: translateY(-1px);
+}
+
+.theme-toggle .fas {
+  font-size: 1.2rem;
+}
+
+/* Typography improvements */
+h1.display-4 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.h4, h4, .card-header h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-muted {
+  color: rgba(var(--bs-body-color-rgb), 0.65) !important;
 }
 
 /* File explorer styling */
@@ -109,33 +225,57 @@ body {
   max-height: 70vh;
   overflow-y: auto;
   border: 1px solid var(--bs-border-color);
-  border-radius: 0.375rem;
+  border-radius: 8px;
+  padding: 0.25rem;
+  background-color: rgba(var(--bs-body-bg-rgb), 0.5);
 }
 
 .tree-view {
-  padding: 0.5rem;
+  padding: 0.75rem;
 }
 
 .tree-item {
-  transition: background-color 0.15s ease-in-out;
+  transition: all 0.15s ease-in-out;
+  border-radius: 6px;
+  margin-bottom: 2px;
 }
 
 .tree-item:hover {
-  background-color: rgba(var(--bs-primary-rgb), 0.05);
+  background-color: rgba(var(--bs-primary-rgb), 0.075);
+  transform: translateX(2px);
+}
+
+.tree-item > div {
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 6px;
 }
 
 .toggle-icon {
-  width: 20px;
+  width: 24px;
   text-align: center;
   cursor: pointer;
+  color: var(--bs-primary);
 }
 
 .toggle-icon i {
   transition: transform 0.2s ease-in-out;
+  font-size: 0.85rem;
 }
 
 .toggle-icon[aria-expanded="true"] i {
   transform: rotate(90deg);
+}
+
+.folder-name, .file-name {
+  font-size: 0.95rem;
+  padding: 0.25rem 0;
+}
+
+.folder-name i, .file-name i {
+  color: var(--bs-primary);
+  margin-right: 0.5rem;
+  width: 20px;
+  text-align: center;
 }
 
 .folder-name {
@@ -165,28 +305,55 @@ body {
   opacity: 1;
 }
 
+/* Alert styling */
+.alert {
+  border-radius: 6px;
+  border: none;
+  padding: 1rem 1.25rem;
+  font-size: 0.95rem;
+}
+
+.alert-success {
+  background-color: rgba(25, 135, 84, 0.15);
+  color: rgb(20, 108, 67);
+}
+
+.alert-danger {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: rgb(176, 42, 55);
+}
+
+.alert-info {
+  background-color: rgba(var(--bs-primary-rgb), 0.15);
+  color: var(--bs-primary);
+}
+
 /* Custom scrollbar */
 .file-explorer::-webkit-scrollbar {
   width: 8px;
 }
 
 .file-explorer::-webkit-scrollbar-track {
-  background: var(--bs-border-color);
+  background: rgba(var(--bs-border-color-rgb), 0.5);
   border-radius: 4px;
 }
 
 .file-explorer::-webkit-scrollbar-thumb {
-  background: rgba(var(--bs-secondary-rgb), 0.5);
+  background: rgba(var(--bs-primary-rgb), 0.3);
   border-radius: 4px;
 }
 
 .file-explorer::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--bs-secondary-rgb), 0.7);
+  background: rgba(var(--bs-primary-rgb), 0.5);
 }
 
 /* Custom scrollbar for textarea */
 textarea {
   min-height: 150px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0.875rem;
 }
 
 textarea::-webkit-scrollbar {
@@ -194,17 +361,23 @@ textarea::-webkit-scrollbar {
 }
 
 textarea::-webkit-scrollbar-track {
-  background: var(--bs-border-color);
+  background: rgba(var(--bs-border-color-rgb), 0.5);
   border-radius: 4px;
 }
 
 textarea::-webkit-scrollbar-thumb {
-  background: rgba(var(--bs-secondary-rgb), 0.5);
+  background: rgba(var(--bs-primary-rgb), 0.3);
   border-radius: 4px;
 }
 
 textarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--bs-secondary-rgb), 0.7);
+  background: rgba(var(--bs-primary-rgb), 0.5);
+}
+
+/* Focus styles */
+*:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25) !important;
 }
 
 /* Make the list-group items more compact */
@@ -227,9 +400,24 @@ textarea::-webkit-scrollbar-thumb:hover {
 /* Highlighting selected items */
 .file-checkbox:checked ~ .file-name,
 .folder-checkbox:checked ~ .folder-name {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--bs-primary);
 }
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.6em;
+  border-radius: 4px;
+}
+
+.badge.bg-info {
+  background-color: rgba(var(--bs-primary-rgb), 0.15) !important;
+  color: var(--bs-primary) !important;
+}
+
+/* Font import for better typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 .selected-folder {
   background-color: rgba(var(--bs-primary-rgb), 0.05);
@@ -250,4 +438,26 @@ textarea::-webkit-scrollbar-thumb:hover {
 .tooltip-inner {
   text-align: left;
   max-width: 300px;
+}
+/* Fix for bg-light contrast issues */
+.bg-light {
+  color: #212529 !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+  color: #e9ecef !important;
+}
+
+.card-header.bg-light {
+  background-color: rgba(var(--bs-light-rgb), 1) !important;
+}
+
+textarea.bg-light {
+  background-color: rgba(var(--bs-light-rgb), 0.8) !important;
+}
+
+/* Improve buttons in cards */
+.card-header .btn {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
 }
