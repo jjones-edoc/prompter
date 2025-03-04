@@ -2,10 +2,36 @@
 
 /* Color customization */
 :root {
-  --bs-primary: #7c3aed;
-  --bs-primary-rgb: 124, 58, 237;
+  /* Light theme (default) */
+  --bs-primary: #3a6ced;
+  --bs-primary-rgb: 58, 108, 237;
   --bs-secondary: #4b5563;
   --bs-secondary-rgb: 75, 85, 99;
+  
+  /* Theme-specific colors */
+  --bs-body-color: #212529;
+  --bs-body-bg: #fff;
+  --bs-card-bg: #fff;
+  --bs-border-color: #dee2e6;
+  --bs-input-bg: #fff;
+  --bs-input-color: #212529;
+  --bs-form-check-input-bg: #fff;
+  --bs-breadcrumb-color: #6c757d;
+}
+
+/* Dark theme */
+[data-bs-theme="dark"] {
+  --bs-primary: #5d8eff;
+  --bs-primary-rgb: 93, 142, 255;
+  
+  --bs-body-color: #e9ecef;
+  --bs-body-bg: #212529;
+  --bs-card-bg: #343a40;
+  --bs-border-color: #495057;
+  --bs-input-bg: #2b3035;
+  --bs-input-color: #e9ecef;
+  --bs-form-check-input-bg: #2b3035;
+  --bs-breadcrumb-color: #adb5bd;
 }
 
 /* Override Bootstrap's primary and secondary colors */
@@ -16,8 +42,8 @@
 
 .btn-primary:hover,
 .btn-primary:focus {
-  background-color: #6d28d9;
-  border-color: #6d28d9;
+  background-color: rgba(var(--bs-primary-rgb), 0.9);
+  border-color: rgba(var(--bs-primary-rgb), 0.9);
 }
 
 .btn-secondary {
@@ -27,19 +53,62 @@
 
 .btn-secondary:hover,
 .btn-secondary:focus {
-  background-color: #374151;
-  border-color: #374151;
+  background-color: rgba(var(--bs-secondary-rgb), 0.9);
+  border-color: rgba(var(--bs-secondary-rgb), 0.9);
 }
 
 .text-primary {
   color: var(--bs-primary) !important;
 }
 
+/* Theme-specific style overrides */
+body {
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.card {
+  background-color: var(--bs-card-bg);
+  border-color: var(--bs-border-color);
+}
+
+.form-control, .input-group-text {
+  background-color: var(--bs-input-bg);
+  color: var(--bs-input-color);
+  border-color: var(--bs-border-color);
+}
+
+.form-check-input {
+  background-color: var(--bs-form-check-input-bg);
+  border-color: var(--bs-border-color);
+}
+
+.breadcrumb-item a {
+  color: var(--bs-breadcrumb-color);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
 /* File explorer styling */
 .file-explorer {
   max-height: 70vh;
   overflow-y: auto;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--bs-border-color);
   border-radius: 0.375rem;
 }
 
@@ -52,7 +121,7 @@
 }
 
 .tree-item:hover {
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: rgba(var(--bs-primary-rgb), 0.05);
 }
 
 .toggle-icon {
@@ -102,17 +171,17 @@
 }
 
 .file-explorer::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bs-border-color);
   border-radius: 4px;
 }
 
 .file-explorer::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: rgba(var(--bs-secondary-rgb), 0.5);
   border-radius: 4px;
 }
 
 .file-explorer::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
+  background: rgba(var(--bs-secondary-rgb), 0.7);
 }
 
 /* Custom scrollbar for textarea */
@@ -125,22 +194,22 @@ textarea::-webkit-scrollbar {
 }
 
 textarea::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bs-border-color);
   border-radius: 4px;
 }
 
 textarea::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: rgba(var(--bs-secondary-rgb), 0.5);
   border-radius: 4px;
 }
 
 textarea::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
+  background: rgba(var(--bs-secondary-rgb), 0.7);
 }
 
 /* Make the list-group items more compact */
 .list-group-item-light {
-  background-color: #f8f9fa;
+  background-color: var(--bs-card-bg);
 }
 
 /* Ensuring responsive design for small screens */
@@ -163,7 +232,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 .selected-folder {
-  background-color: rgba(124, 58, 237, 0.05);
+  background-color: rgba(var(--bs-primary-rgb), 0.05);
 }
 
 /* Highlight for search matches */
@@ -173,8 +242,8 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 @keyframes highlight-fade {
-  from { background-color: rgba(255, 243, 205, 1); }
-  to { background-color: rgba(255, 243, 205, 0.5); }
+  from { background-color: rgba(var(--bs-primary-rgb), 0.2); }
+  to { background-color: rgba(var(--bs-primary-rgb), 0.05); }
 }
 
 /* Add padding to tooltip text */

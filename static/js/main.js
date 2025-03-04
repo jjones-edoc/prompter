@@ -73,3 +73,53 @@ document.addEventListener("DOMContentLoaded", function () {
   // Export functions to make them available for dynamically loaded content
   window.setupCheckboxes = CheckboxHandler.setupCheckboxes;
 });
+// Theme toggling functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Check for saved theme preference or use the system preference
+  const savedTheme = localStorage.getItem('theme');
+  const systemDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  // Set theme based on saved preference or system default
+  if (savedTheme) {
+    document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+  } else if (systemDarkMode) {
+    document.documentElement.setAttribute('data-bs-theme', 'dark');
+    updateThemeIcon('dark');
+  }
+
+  // Add event listener to theme toggle buttons (they might be on different pages)
+  const themeToggleButtons = document.querySelectorAll('.theme-toggle');
+  themeToggleButtons.forEach(button => {
+    button.addEventListener('click', toggleTheme);
+  });
+});
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  // Update theme
+  document.documentElement.setAttribute('data-bs-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  
+  // Update icons
+  updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+  const themeToggles = document.querySelectorAll('.theme-toggle');
+  
+  themeToggles.forEach(toggle => {
+    const moonIcon = toggle.querySelector('.fa-moon');
+    const sunIcon = toggle.querySelector('.fa-sun');
+    
+    if (theme === 'dark') {
+      moonIcon.classList.add('d-none');
+      sunIcon.classList.remove('d-none');
+    } else {
+      sunIcon.classList.add('d-none');
+      moonIcon.classList.remove('d-none');
+    }
+  });
+}

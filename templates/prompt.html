@@ -13,14 +13,20 @@
   </head>
   <body>
     <div class="container py-4">
-      <h1 class="display-4 text-primary mb-2">Prompter</h1>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1 class="display-4 text-primary mb-0">Prompter</h1>
+        <div class="theme-toggle p-2" title="Toggle light/dark mode">
+          <i class="fas fa-moon"></i>
+          <i class="fas fa-sun d-none"></i>
+        </div>
+      </div>
 
       <div class="card shadow-sm mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
           <h2 class="h4 mb-0">Enter Your Prompt</h2>
         </div>
         <div class="card-body">
-          <form action="{{ url_for('generate') }}" method="POST">
+          <form action="{{ url_for('select_files') }}" method="POST">
             <div class="mb-2">
               <div class="form-check mb-2">
                 <input class="form-check-input" type="checkbox" id="include_coding_prompt" name="include_coding_prompt" />
@@ -34,18 +40,9 @@
               <textarea id="prompt" name="prompt" class="form-control" rows="10" placeholder="Enter your instructions for Claude here..."></textarea>
             </div>
 
-            <div class="d-flex justify-content-between">
-              <a href="{{ url_for('index') }}" class="btn btn-secondary"> <i class="fas fa-redo me-1"></i> Start New </a>
-              <button type="submit" class="btn btn-primary"><i class="fas fa-wand-magic-sparkles me-1"></i> Generate</button>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-right me-1"></i> Select Files</button>
             </div>
-
-            <!-- Add hidden inputs for any selected folders and token count -->
-            {% for folder in selected_folders if selected_folders %}
-            <input type="hidden" name="selected_folder" value="{{ folder }}" />
-            {% endfor %}
-            
-            <!-- Hidden input for token count from previous page -->
-            <input type="hidden" name="token_count" id="prev-token-count" value="{{ token_count|default(0) }}" />
           </form>
         </div>
       </div>
@@ -56,6 +53,7 @@
     <!-- Add missing JavaScript files -->
     <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tokenCounter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
       // Auto-resize the textarea as user types
       document.getElementById("prompt").addEventListener("input", function () {

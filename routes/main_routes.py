@@ -14,10 +14,26 @@ def register_main_routes(app, scanner):
 
     @app.route('/')
     def index():
-        """Display the files in the current directory"""
+        """Display the prompt input screen as the first step"""
         # Clear any existing session data to start fresh
         session.clear()
+        
+        return render_template('prompt.html')
 
+    @app.route('/select_files', methods=['POST'])
+    def select_files():
+        """Handle the prompt input and show file selection screen"""
+        user_prompt = request.form.get('prompt', '')
+        include_coding_prompt = 'include_coding_prompt' in request.form
+        
+        # Store prompt data in session
+        session['user_prompt'] = user_prompt
+        session['include_coding_prompt'] = include_coding_prompt
+        
+        # If prompt is empty, go back to index
+        if not user_prompt.strip():
+            return redirect(url_for('index'))
+            
         # Get the current path from the query string (default to root)
         current_path = request.args.get('path', '')
 
@@ -29,11 +45,19 @@ def register_main_routes(app, scanner):
                                current_path=current_path,
                                parent_path=parent_path)
 
-    @app.route('/prompt', methods=['POST'])
-    def prompt_input():
-        """Handle the file selection and show prompt input screen"""
+    @app.route('/generate', methods=['GET', 'POST'])
+    def generate():
+        """Generate the final prompt with file contents"""
+        # If GET request (e.g., from back button), redirect to file selection page
+        if request.method == 'GET':
+            return redirect(url_for('index'))
+
         selected_files = request.form.getlist('selected_files')
         selected_folders = request.form.getlist('selected_folder')
+        
+        # Get stored prompt data from session
+        user_prompt = session.get('user_prompt', '')
+        include_coding_prompt = session.get('include_coding_prompt', False)
 
         # Process folders to get all files within them
         folder_files = []
@@ -42,39 +66,11 @@ def register_main_routes(app, scanner):
 
         # Combine explicitly selected files and files from selected folders
         all_selected_files = list(set(selected_files + folder_files))
-
-        # Store selected files in session
-        session['selected_files'] = all_selected_files
-        session['selected_folders'] = selected_folders
-
-        # If no files were selected, go back to index
+        
+        # If no files were selected, go back to file selection
         if not all_selected_files and not selected_folders:
             current_path = request.form.get('current_path', '')
-            return redirect(url_for('index', path=current_path))
-
-        return render_template('prompt.html',
-                               selected_files=all_selected_files,
-                               selected_folders=selected_folders)
-
-    @app.route('/generate', methods=['GET', 'POST'])
-    def generate():
-        """Generate the final prompt with file contents"""
-        # If GET request (e.g., from back button), redirect to prompt input page
-        if request.method == 'GET':
-            return redirect(url_for('prompt_input'))
-
-        user_prompt = request.form.get('prompt', '')
-        include_coding_prompt = 'include_coding_prompt' in request.form
-        selected_files = session.get('selected_files', [])
-        selected_folders = request.form.getlist('selected_folder')
-
-        # If folders were selected, get all files in those folders
-        folder_files = []
-        for folder_path in selected_folders:
-            _collect_files_recursive(scanner, folder_path, folder_files)
-
-        # Combine explicitly selected files and files from selected folders
-        all_selected_files = list(set(selected_files + folder_files))
+            return redirect(url_for('select_files', path=current_path))
 
         # Prepare the combined content
         combined_content = ""

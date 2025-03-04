@@ -14,7 +14,13 @@
   </head>
   <body>
     <div class="container py-4">
-      <h1 class="display-4 text-primary mb-2">Prompter</h1>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1 class="display-4 text-primary mb-0">Prompter</h1>
+        <div class="theme-toggle p-2" title="Toggle light/dark mode">
+          <i class="fas fa-moon"></i>
+          <i class="fas fa-sun d-none"></i>
+        </div>
+      </div>
 
       <!-- Breadcrumb Navigation -->
       <nav aria-label="breadcrumb" class="mb-4">
@@ -52,7 +58,7 @@
           </div>
         </div>
         <div class="card-body">
-          <form action="{{ url_for('prompt_input') }}" method="POST">
+          <form action="{{ url_for('generate') }}" method="POST">
             <input type="hidden" name="current_path" value="{{ current_path }}" />
             <input type="hidden" name="token_count" id="hidden-token-count" value="0" />
             <div class="file-explorer">
@@ -80,8 +86,11 @@
             </div>
 
             <div class="d-flex justify-content-between mt-4">
-              <button type="button" id="select-all-btn" class="btn btn-outline-secondary"><i class="fas fa-check-square me-1"></i> Select All</button>
-              <button type="submit" class="btn btn-primary" id="next-button"><i class="fas fa-arrow-right me-1"></i> Next</button>
+              <a href="{{ url_for('index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Prompt</a>
+              <div>
+                <button type="button" id="select-all-btn" class="btn btn-outline-secondary"><i class="fas fa-check-square me-1"></i> Select All</button>
+                <button type="submit" class="btn btn-primary" id="next-button"><i class="fas fa-wand-magic-sparkles me-1"></i> Generate</button>
+              </div>
             </div>
           </form>
         </div>
@@ -97,6 +106,16 @@
     <script src="{{ url_for('static', filename='js/treeView.js') }}"></script>
     <script src="{{ url_for('static', filename='js/searchHandler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+      // Initialize theme toggle on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+          document.documentElement.setAttribute('data-bs-theme', savedTheme);
+          updateThemeIcon(savedTheme);
+        }
+      });
+    </script>
     
     
   </body>
