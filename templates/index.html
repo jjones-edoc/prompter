@@ -14,30 +14,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div class="container py-4">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1 class="display-4 text-primary mb-0">Prompter</h1>
-        <div class="theme-toggle p-2" title="Toggle light/dark mode">
-          <i class="fas fa-moon"></i>
-          <i class="fas fa-sun d-none"></i>
-        </div>
-      </div>
-
-      <!-- Breadcrumb Navigation -->
-      <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
-          {% if current_path %} {% set path_parts = current_path.split('/') %} {% set accumulated_path = "" %} {% for part in path_parts %} {% if part %} {% set
-          accumulated_path = accumulated_path + "/" + part if accumulated_path else part %}
-          <li class="breadcrumb-item">
-            <a href="{{ url_for('index', path=accumulated_path) }}">{{ part }}</a>
-          </li>
-          {% endif %} {% endfor %} {% endif %}
-        </ol>
-      </nav>
-
+    <div class="container py-3">
       <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
           <h2 class="h4 mb-0">Select Files for Your Prompt</h2>
           <div class="token-counter">
             <span class="badge bg-info text-dark fs-6"> <i class="fas fa-calculator me-1"></i> Total Tokens: <span id="total-tokens">0</span> </span>
@@ -62,13 +41,22 @@
           <form action="{{ url_for('generate') }}" method="POST">
             <input type="hidden" name="current_path" value="{{ current_path }}" />
             <input type="hidden" name="token_count" id="hidden-token-count" value="0" />
+            <!-- Action buttons - streamlined and sticky -->
+            <div class="d-flex justify-content-between mb-3 sticky-buttons">
+              <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back</a>
+              <div>
+                <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm"><i class="fas fa-check-square me-1"></i> Select All</button>
+                <button type="submit" class="btn btn-primary btn-sm" id="next-button"><i class="fas fa-wand-magic-sparkles me-1"></i> Generate</button>
+              </div>
+            </div>
+            
             <div class="file-explorer">
               <!-- Tree view for folders and files (all loaded at once) -->
               <div class="tree-view">
                 <ul class="tree-root list-unstyled" id="root-folder-contents">
                   {% if parent_path is not none %}
                   <li class="tree-item">
-                    <div class="d-flex align-items-center p-2 border-bottom">
+                    <div class="d-flex align-items-center border-bottom">
                       <div class="me-2">
                         <input type="checkbox" class="form-check-input" disabled />
                       </div>
@@ -83,14 +71,6 @@
                   {% endif %}
                   <li class="py-2 text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading all files and folders...</li>
                 </ul>
-              </div>
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-              <a href="{{ url_for('index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Prompt</a>
-              <div>
-                <button type="button" id="select-all-btn" class="btn btn-outline-secondary"><i class="fas fa-check-square me-1"></i> Select All</button>
-                <button type="submit" class="btn btn-primary" id="next-button"><i class="fas fa-wand-magic-sparkles me-1"></i> Generate</button>
               </div>
             </div>
           </form>

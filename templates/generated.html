@@ -13,27 +13,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div class="container py-4">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1 class="display-4 text-primary mb-0">Prompter</h1>
-        <div class="theme-toggle p-2" title="Toggle light/dark mode">
-          <i class="fas fa-moon"></i>
-          <i class="fas fa-sun d-none"></i>
-        </div>
-      </div>
-
+    <div class="container py-3">
       <div class="card shadow-sm mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
           <h2 class="h4 mb-0">Your Generated Prompt</h2>
         </div>
         <div class="card-body">
           <div class="mb-4">
-            <textarea id="prompt-content" class="form-control bg-light" rows="15" readonly>{{ combined_content }}</textarea>
+            <textarea id="prompt-content" class="form-control bg-light d-none" rows="15">{{ combined_content }}</textarea>
           </div>
 
           <div class="d-flex flex-wrap gap-2 justify-content-between">
             <div>
-              <button id="copy-button" class="btn btn-primary"><i class="fas fa-copy me-1"></i> Copy to Clipboard</button>
+              <button id="toggle-prompt-btn" class="btn btn-primary"><i class="fas fa-eye me-1"></i> Show Prompt</button>
+              <button id="copy-button" class="btn btn-primary ms-2"><i class="fas fa-copy me-1"></i> Copy to Clipboard</button>
               <a href="{{ url_for('index') }}" class="btn btn-secondary ms-2"> <i class="fas fa-redo me-1"></i> Start New </a>
             </div>
             <a href="https://claude.ai/new" class="btn btn-success" id="claude-button" target="_blank">
@@ -69,8 +62,34 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
+      // Toggle prompt visibility and editability
+      document.getElementById("toggle-prompt-btn").addEventListener("click", function() {
+        const promptContent = document.getElementById("prompt-content");
+        const toggleBtn = document.getElementById("toggle-prompt-btn");
+        
+        if (promptContent.classList.contains("d-none")) {
+          // Show the prompt and make it editable
+          promptContent.classList.remove("d-none");
+          promptContent.removeAttribute("readonly");
+          toggleBtn.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide Prompt';
+        } else {
+          // Hide the prompt
+          promptContent.classList.add("d-none");
+          promptContent.setAttribute("readonly", "readonly");
+          toggleBtn.innerHTML = '<i class="fas fa-eye me-1"></i> Show Prompt';
+        }
+      });
+      
       document.getElementById("copy-button").addEventListener("click", function () {
         var promptContent = document.getElementById("prompt-content");
+        // Save current visibility state
+        var wasHidden = promptContent.classList.contains("d-none");
+        
+        // If hidden, temporarily show it to allow selection
+        if (wasHidden) {
+          promptContent.classList.remove("d-none");
+        }
+        
         promptContent.select();
         var copyStatus = document.getElementById("copy-status");
 
@@ -85,6 +104,16 @@
             setTimeout(function () {
               copyStatus.classList.add("d-none");
             }, 3000);
+            
+            // If it was hidden, hide it again
+            if (wasHidden) {
+              promptContent.classList.add("d-none");
+            }
+            
+            // If it was hidden, hide it again
+            if (wasHidden) {
+              promptContent.classList.add("d-none");
+            }
           } else {
             copyStatus.textContent = "Copy failed. Please try again.";
             copyStatus.classList.remove("d-none", "alert-success");
@@ -100,6 +129,14 @@
       // Modern clipboard API as fallback
       if (!document.execCommand) {
         document.getElementById("copy-button").addEventListener("click", async function () {
+          var promptContent = document.getElementById("prompt-content");
+          var wasHidden = promptContent.classList.contains("d-none");
+          
+          // If hidden, temporarily show it
+          if (wasHidden) {
+            promptContent.classList.remove("d-none");
+          }
+          
           var copyStatus = document.getElementById("copy-status");
           try {
             var promptContent = document.getElementById("prompt-content").value;
@@ -116,6 +153,16 @@
             copyStatus.textContent = "Copy failed: " + err;
             copyStatus.classList.remove("d-none", "alert-success");
             copyStatus.classList.add("alert-danger");
+            
+            // If it was hidden, hide it again
+            if (wasHidden) {
+              promptContent.classList.add("d-none");
+            }
+            
+            // If it was hidden, hide it again
+            if (wasHidden) {
+              promptContent.classList.add("d-none");
+            }
           }
         });
       }
