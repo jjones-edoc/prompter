@@ -172,3 +172,58 @@ def register_api_routes(app, scanner):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/search_files', methods=['POST'])
+    def search_files():
+        """Search for files containing the specified text"""
+        search_query = request.form.get('search_query', '')
+        if not search_query:
+            return jsonify({'error': 'No search query provided'}), 400
+            
+        try:
+            matching_files = scanner.search_files(search_query)
+            return jsonify({
+                'matching_files': matching_files,
+                'count': len(matching_files)
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/process_claude_response', methods=['POST'])
+    def process_claude_response():
+        """Process the response pasted from Claude"""
+        claude_response = request.form.get('claude_response', '')
+        if not claude_response:
+            return jsonify({'error': 'No response provided'}), 400
+            
+        try:
+            # Import our processor (using relative import based on project structure)
+            from utils.response_processor import ClaudeResponseProcessor
+            
+            # Get the root directory from app config
+            root_dir = app.config['PROMPTER_DIRECTORY']
+            
+            # Initialize the processor with the root directory
+            processor = ClaudeResponseProcessor(root_dir)
+            
+            # Process the response
+            results = processor.process_response(claude_response)
+            
+            # Build response based on processing results
+            response = {
+                'success': results['success_count'] > 0,
+                'edited_files': results['edited_files'],
+                'success_count': results['success_count'],
+                'error_count': results['error_count'],
+                'errors': results['errors']
+            }
+            
+            # Add a summary message
+            if results['error_count'] == 0:
+                response['message'] = f"Successfully edited {results['success_count']} file(s)"
+            else:
+                response['message'] = f"Processed with {results['success_count']} successful edit(s) and {results['error_count']} error(s)"
+            
+            return jsonify(response)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500

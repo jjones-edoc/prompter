@@ -18,9 +18,6 @@
       <div class="card shadow-sm mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
           <h2 class="h4 mb-0">Enter Your Prompt</h2>
-          <div class="token-counter">
-            <span class="badge bg-info text-dark fs-6"> <i class="fas fa-calculator me-1"></i> Total Tokens: <span id="total-tokens">0</span> </span>
-          </div>
         </div>
         <div class="card-body">
           <form action="{{ url_for('generate') }}" method="POST">
@@ -42,10 +39,13 @@
               <button type="submit" class="btn btn-primary"><i class="fas fa-wand-magic-sparkles me-1"></i> Generate</button>
             </div>
 
-            <!-- Add hidden inputs for any selected folders -->
+            <!-- Add hidden inputs for any selected folders and token count -->
             {% for folder in selected_folders if selected_folders %}
             <input type="hidden" name="selected_folder" value="{{ folder }}" />
             {% endfor %}
+            
+            <!-- Hidden input for token count from previous page -->
+            <input type="hidden" name="token_count" id="prev-token-count" value="{{ token_count|default(0) }}" />
           </form>
         </div>
       </div>
@@ -53,93 +53,15 @@
 
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Add missing JavaScript files -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tokenCounter.js') }}"></script>
     <script>
       // Auto-resize the textarea as user types
       document.getElementById("prompt").addEventListener("input", function () {
         this.style.height = "auto";
         this.style.height = this.scrollHeight + "px";
-      });
-
-      // Load and display token counts for files and folders
-      document.addEventListener("DOMContentLoaded", function () {
-        let totalTokens = 0;
-        const totalTokensElement = document.getElementById("total-tokens");
-
-        // Function to update total tokens display
-        function updateTotalTokens() {
-          totalTokensElement.textContent = totalTokens.toLocaleString();
-
-          // Change color based on token count
-          if (totalTokens > 100000) {
-            totalTokensElement.closest(".badge").classList.remove("bg-info", "text-dark", "bg-warning");
-            totalTokensElement.closest(".badge").classList.add("bg-danger", "text-white");
-          } else if (totalTokens > 50000) {
-            totalTokensElement.closest(".badge").classList.remove("bg-info", "text-dark", "bg-danger");
-            totalTokensElement.closest(".badge").classList.add("bg-warning", "text-dark");
-          } else {
-            totalTokensElement.closest(".badge").classList.remove("bg-warning", "bg-danger", "text-white");
-            totalTokensElement.closest(".badge").classList.add("bg-info", "text-dark");
-          }
-        }
-
-        // Calculate total tokens for all selected files and folders
-        function calculateTotalTokens() {
-          // Get hidden inputs for selected files
-          const selectedFilesInputs = document.querySelectorAll('input[name="selected_files"]');
-          selectedFilesInputs.forEach((input) => {
-            const filePath = input.value;
-
-            // Create a request to get file token count
-            fetch("/api/get_file_token_count", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: "file_path=" + encodeURIComponent(filePath),
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                if (!data.error) {
-                  // Add to total
-                  totalTokens += data.token_count;
-                  updateTotalTokens();
-                }
-              })
-              .catch((error) => {
-                console.error("Error fetching file token count:", error);
-              });
-          });
-
-          // Get hidden inputs for selected folders
-          const selectedFolderInputs = document.querySelectorAll('input[name="selected_folder"]');
-          selectedFolderInputs.forEach((input) => {
-            const folderPath = input.value;
-
-            // Create a request to get folder token count
-            fetch("/api/get_folder_token_count", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: "folder_path=" + encodeURIComponent(folderPath),
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                if (!data.error) {
-                  // Add to total
-                  totalTokens += data.token_count;
-                  updateTotalTokens();
-                }
-              })
-              .catch((error) => {
-                console.error("Error fetching folder token count:", error);
-              });
-          });
-        }
-
-        // Initialize token calculation
-        calculateTotalTokens();
-      });
+      });        
     </script>
   </body>
 </html>

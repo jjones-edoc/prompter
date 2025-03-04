@@ -9,13 +9,8 @@ var CheckboxHandler = (function() {
    * @param {Event} event - The change event
    */
   function handleFileCheckboxChange() {
-    const tokenEstimate = parseInt(this.getAttribute("data-token-estimate") || 0);
-
-    if (this.checked) {
-      TokenCounter.addTokens(tokenEstimate);
-    } else {
-      TokenCounter.subtractTokens(tokenEstimate);
-    }
+    // Instead of adding/subtracting individual tokens, recalculate the total
+    TokenCounter.recalculateTokens();
   }
 
   /**
@@ -53,22 +48,36 @@ var CheckboxHandler = (function() {
       const hiddenInputs = form.querySelectorAll(`.hidden-folder-input[data-folder-path="${folderPath}"]`);
       hiddenInputs.forEach((input) => input.remove());
 
-      // Subtract tokens for this folder
-      const folderTokens = parseInt(folderTokenCountBadge.getAttribute("data-folder-tokens") || 0);
-      TokenCounter.subtractTokens(folderTokens);
+      // Reset folder token count display
       folderTokenCountBadge.textContent = "0 tokens";
       folderTokenCountBadge.setAttribute("data-folder-tokens", "0");
+      
+      // Instead of subtracting tokens directly, we'll recalculate all tokens
+      TokenCounter.recalculateTokens();
     }
 
     // Also check/uncheck all visible child files
     const folderContents = folderItem.querySelector(".folder-contents");
     const fileCheckboxes = folderContents.querySelectorAll(".file-checkbox");
 
+    // Block triggering individual change events while checking/unchecking files
+    const isBlocking = fileCheckboxes.length > 0;
+    if (isBlocking) {
+      BlockEvents.startBlocking();
+    }
+    
     fileCheckboxes.forEach((fileCheckbox) => {
       if (fileCheckbox.checked !== checkbox.checked) {
         fileCheckbox.checked = checkbox.checked;
       }
     });
+    
+    if (isBlocking) {
+      BlockEvents.stopBlocking();
+    }
+    
+    // Recalculate total token count after all files have been checked/unchecked
+    TokenCounter.recalculateTokens();
   }
 
   /**
@@ -78,12 +87,22 @@ var CheckboxHandler = (function() {
   function setupCheckboxes(parentElement) {
     // Initialize event listeners for file checkboxes
     parentElement.querySelectorAll(".file-checkbox").forEach((checkbox) => {
-      checkbox.addEventListener("change", handleFileCheckboxChange);
+      checkbox.addEventListener("change", function(event) {
+        // Only handle the event if we're not currently blocking events
+        if (!BlockEvents.isCurrentlyBlocking()) {
+          handleFileCheckboxChange.call(this, event);
+        }
+      });
     });
 
     // Initialize event listeners for folder checkboxes
     parentElement.querySelectorAll(".folder-checkbox").forEach((checkbox) => {
-      checkbox.addEventListener("change", handleFolderCheckboxChange);
+      checkbox.addEventListener("change", function(event) {
+        // Only handle the event if we're not currently blocking events
+        if (!BlockEvents.isCurrentlyBlocking()) {
+          handleFolderCheckboxChange.call(this, event);
+        }
+      });
     });
   }
 
@@ -97,13 +116,48 @@ var CheckboxHandler = (function() {
         const allCheckables = document.querySelectorAll(".file-checkbox, .folder-checkbox");
         const allChecked = Array.from(allCheckables).every((cb) => cb.checked);
 
+        // First update all checkboxes without triggering individual events
         allCheckables.forEach((checkbox) => {
           checkbox.checked = !allChecked;
-
-          // Trigger change event
-          const event = new Event("change", { bubbles: true });
-          checkbox.dispatchEvent(event);
         });
+        
+        // For folders, we need to handle the special case of clearing or adding folder metadata
+        document.querySelectorAll(".folder-checkbox").forEach((checkbox) => {
+          const folderItem = checkbox.closest(".folder-item");
+          if (!checkbox.checked) {
+            // If we're deselecting, remove the selected class
+            folderItem.classList.remove("selected-folder");
+            
+            // Reset token count display
+            const tokenBadge = folderItem.querySelector(".token-badge");
+            if (tokenBadge) {
+              tokenBadge.textContent = "0 tokens";
+              tokenBadge.setAttribute("data-folder-tokens", "0");
+            }
+            
+            // Remove hidden inputs
+            const form = checkbox.closest("form");
+            if (form) {
+              const folderPath = checkbox.getAttribute("data-folder-path");
+              const hiddenInputs = form.querySelectorAll(`.hidden-folder-input[data-folder-path="${folderPath}"]`);
+              hiddenInputs.forEach((input) => input.remove());
+            }
+          } else {
+            // If we're selecting, add the selected class
+            folderItem.classList.add("selected-folder");
+          }
+        });
+
+        // Then do a single recalculation of tokens
+        setTimeout(() => {
+          if (allChecked) {
+            // If deselecting all, just set to 0
+            TokenCounter.setTotalTokens(0);
+          } else {
+            // If selecting all, recalculate
+            TokenCounter.recalculateTokens();
+          }
+        }, 50);
 
         // Update button text
         this.innerHTML = allChecked ? '<i class="fas fa-check-square me-1"></i> Select All' : '<i class="fas fa-square me-1"></i> Deselect All';

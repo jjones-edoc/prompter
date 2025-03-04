@@ -1,5 +1,6 @@
 from flask import render_template, request, session, redirect, url_for, Blueprint
-from utils.helpers import get_language_type, get_coding_prompt
+from utils.helpers import get_language_type
+from utils.prompts import get_coding_prompt
 
 
 def register_main_routes(app, scanner):

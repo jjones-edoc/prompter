@@ -136,6 +136,21 @@ class Scanner:
         """Check if the file is a supported text file based on extension."""
         ext = os.path.splitext(path)[1].lower()
         return ext in self.SUPPORTED_TEXT_EXTENSIONS
+        
+    def _is_searchable_file(self, file_path: str) -> bool:
+        """Check if the file can be searched through (text-based)."""
+        # Check if it's a supported text file
+        if not self._is_text_file(file_path):
+            return False
+            
+        # Skip very large files (over 10MB)
+        try:
+            if os.path.getsize(file_path) > 10 * 1024 * 1024:
+                return False
+        except Exception:
+            return False
+            
+        return True
 
     def count_tokens(self, file_path: str) -> int:
         """Count tokens in a text file using tiktoken if available, or estimate if not."""
@@ -281,6 +296,85 @@ class Scanner:
             return "[Binary file not included]"
         except Exception as e:
             return f"[Error reading file: {str(e)}]"
+            
+    def search_files(self, search_query: str) -> List[Dict[str, Any]]:
+        """
+        Search all text files for the given query.
+        
+        Args:
+            search_query: Text to search for
+            
+        Returns:
+            List of dicts with file info
+        """
+        matching_files = []
+        
+        # Normalize query for case-insensitive search
+        search_query = search_query.lower()
+        
+        try:
+            # Walk through the entire directory structure
+            for root, dirs, files in os.walk(self.root_dir):
+                # Filter out excluded directories
+                dirs[:] = [d for d in dirs if not self._should_exclude(
+                    os.path.join(root, d))]
+                
+                # Process files in this directory
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    
+                    # Skip if file should be excluded or is not searchable
+                    if self._should_exclude(file_path) or not self._is_searchable_file(file_path):
+                        continue
+                        
+                    try:
+                        # Get relative path from root
+                        rel_path = os.path.relpath(file_path, self.root_dir)
+                        rel_path = rel_path.replace(os.sep, '/')
+                        
+                        # Search file content
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read().lower()
+                            
+                        if search_query in content:
+                            # Count matches
+                            match_count = content.count(search_query)
+                            
+                            # Find lines with matches
+                            lines = content.splitlines()
+                            matching_lines = []
+                            for i, line in enumerate(lines):
+                                if search_query in line.lower():
+                                    matching_lines.append({
+                                        'line_number': i + 1,
+                                        'text': line[:100] + ('...' if len(line) > 100 else '')
+                                    })
+                                    
+                                    # Limit to first 5 matching lines
+                                    if len(matching_lines) >= 5:
+                                        break
+                                        
+                            # Get token count
+                            token_count = self.count_tokens(file_path)
+                            
+                            # Add to results
+                            matching_files.append({
+                                'name': file,
+                                'path': rel_path,
+                                'size': os.path.getsize(file_path),
+                                'type': os.path.splitext(file)[1][1:] or 'unknown',
+                                'token_count': token_count,
+                                'match_count': match_count,
+                                'matching_lines': matching_lines
+                            })
+                    except (UnicodeDecodeError, IOError, OSError):
+                        # Skip files that can't be read
+                        continue
+                
+        except Exception as e:
+            print(f"Error searching files: {str(e)}")
+            
+        return matching_files
 
     def get_folder_contents(self, folder_path: str) -> Tuple[List[DirInfo], List[FileInfo]]:
         """

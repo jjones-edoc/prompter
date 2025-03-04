@@ -36,9 +36,25 @@
             <span class="badge bg-info text-dark fs-6"> <i class="fas fa-calculator me-1"></i> Total Tokens: <span id="total-tokens">0</span> </span>
           </div>
         </div>
+        <div class="card-body pb-0">
+          <!-- Search box -->
+          <div class="input-group mb-3">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="search-input" placeholder="Search files by content..." aria-label="Search files">
+            <button class="btn btn-outline-secondary" type="button" id="search-button">Search</button>
+          </div>
+          <div id="search-results" class="mb-3 d-none">
+            <div class="alert alert-info d-flex align-items-center">
+              <div class="me-auto" id="search-stats"></div>
+              <button class="btn btn-sm btn-outline-primary" id="select-found-files">Select All Found Files</button>
+              <button class="btn btn-sm btn-outline-secondary ms-2" id="clear-search">Clear</button>
+            </div>
+          </div>
+        </div>
         <div class="card-body">
           <form action="{{ url_for('prompt_input') }}" method="POST">
             <input type="hidden" name="current_path" value="{{ current_path }}" />
+            <input type="hidden" name="token_count" id="hidden-token-count" value="0" />
             <div class="file-explorer">
               <!-- Tree view for folders and files (all loaded at once) -->
               <div class="tree-view">
@@ -65,7 +81,7 @@
 
             <div class="d-flex justify-content-between mt-4">
               <button type="button" id="select-all-btn" class="btn btn-outline-secondary"><i class="fas fa-check-square me-1"></i> Select All</button>
-              <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-right me-1"></i> Next</button>
+              <button type="submit" class="btn btn-primary" id="next-button"><i class="fas fa-arrow-right me-1"></i> Next</button>
             </div>
           </form>
         </div>
@@ -79,6 +95,9 @@
     <script src="{{ url_for('static', filename='js/tokenCounter.js') }}"></script>
     <script src="{{ url_for('static', filename='js/checkboxHandler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/treeView.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/searchHandler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    
   </body>
 </html>

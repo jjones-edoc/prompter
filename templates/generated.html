@@ -37,6 +37,25 @@
           <div id="copy-status" class="alert mt-3 d-none"></div>
         </div>
       </div>
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h2 class="h4 mb-0">Paste Claude Response</h2>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <textarea id="claude-response" class="form-control" rows="10" placeholder="Paste Claude's response here..."></textarea>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <button id="process-button" class="btn btn-primary">
+              <i class="fas fa-cogs me-1"></i> Process Response
+            </button>
+          </div>
+
+          <div id="process-status" class="alert mt-3 d-none"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Bootstrap JS Bundle with Popper -->
@@ -92,6 +111,80 @@
           }
         });
       }
+
+      // Handle processing Claude's response
+      document.getElementById("process-button").addEventListener("click", function() {
+        const claudeResponse = document.getElementById("claude-response").value;
+        const processStatus = document.getElementById("process-status");
+        
+        if (!claudeResponse.trim()) {
+          processStatus.textContent = "Please paste Claude's response first.";
+          processStatus.classList.remove("d-none", "alert-success");
+          processStatus.classList.add("alert-danger");
+          return;
+        }
+        
+        // Show a loading indicator
+        processStatus.textContent = "Processing edits...";
+        processStatus.classList.remove("d-none", "alert-danger", "alert-success");
+        processStatus.classList.add("alert-info");
+        
+        // Send the response to the backend
+        fetch('/api/process_claude_response', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            'claude_response': claudeResponse
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Create a detailed status message
+            let statusMessage = `<strong>${data.message}</strong><br>`;
+            
+            // Add list of edited files if any
+            if (data.edited_files && data.edited_files.length > 0) {
+              statusMessage += "<div class='mt-2'>Edited files:</div><ul>";
+              data.edited_files.forEach(file => {
+                statusMessage += `<li>${file}</li>`;
+              });
+              statusMessage += "</ul>";
+            }
+            
+            // Add errors if any
+            if (data.errors && data.errors.length > 0) {
+              statusMessage += "<div class='mt-2 text-danger'>Errors:</div><ul class='text-danger'>";
+              data.errors.forEach(error => {
+                let errorMsg = `<li>`;
+                if (error.file) {
+                  errorMsg += `<strong>${error.file}</strong>: `;
+                }
+                if (error.line) {
+                  errorMsg += `(line ${error.line}) `;
+                }
+                errorMsg += `${error.message}</li>`;
+                statusMessage += errorMsg;
+              });
+              statusMessage += "</ul>";
+            }
+            
+            // Display the message
+            processStatus.innerHTML = statusMessage;
+            processStatus.classList.remove("d-none", "alert-danger", "alert-info");
+            processStatus.classList.add(data.error_count > 0 ? "alert-warning" : "alert-success");
+          } else {
+            throw new Error(data.error || "Failed to process response.");
+          }
+        })
+        .catch(error => {
+          processStatus.textContent = "Error: " + error.message;
+          processStatus.classList.remove("d-none", "alert-success", "alert-info");
+          processStatus.classList.add("alert-danger");
+        });
+      });
     </script>
   </body>
 </html>
