@@ -1,0 +1,42 @@
+/* Theme variables */
+
+:root {
+  /* Light theme (default) */
+  --bs-primary: #3a6ced;
+  --bs-primary-rgb: 58, 108, 237;
+  --bs-secondary: #4b5563;
+  --bs-secondary-rgb: 75, 85, 99;
+  
+  /* Theme-specific colors */
+  --bs-body-color: #212529;
+  --bs-body-bg: #fff;
+  --bs-body-color-rgb: 33, 37, 41;
+  --bs-body-bg-rgb: 255, 255, 255;
+  --bs-card-bg: #fff;
+  --bs-border-color: #e9ecef;
+  --bs-border-color-rgb: 233, 236, 239;
+  --bs-input-bg: #fff;
+  --bs-input-color: #212529;
+  --bs-form-check-input-bg: #fff;
+  --bs-breadcrumb-color: #6c757d;
+}
+
+/* Dark theme */
+[data-bs-theme="dark"] {
+  --bs-primary: #5d8eff;
+  --bs-primary-rgb: 93, 142, 255;
+  
+  --bs-body-color: #e9ecef;
+  --bs-body-bg: #1a1d21;
+  --bs-body-color-rgb: 233, 236, 239;
+  --bs-body-bg-rgb: 26, 29, 33;
+  --bs-card-bg: #2a2d35;
+  --bs-border-color: #3a3f48;
+  --bs-border-color-rgb: 58, 63, 72;
+  --bs-input-bg: #22252c;
+  --bs-input-color: #e9ecef;
+  --bs-form-check-input-bg: #22252c;
+  --bs-breadcrumb-color: #adb5bd;
+  --bs-light-rgb: 53, 58, 64;
+  --bs-light: #35383f;
+}
