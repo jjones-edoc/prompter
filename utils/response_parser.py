@@ -1,5 +1,3 @@
-# src/tools/code_editor/response_parser.py
-
 import re
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict

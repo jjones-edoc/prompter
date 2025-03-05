@@ -1,4 +1,3 @@
-# run.py
 from pathlib import Path
 from app import create_app
 import webbrowser

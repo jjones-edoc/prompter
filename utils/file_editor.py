@@ -1,5 +1,3 @@
-# src/tools/code_editor/editor_prompts.py
-
 import os
 from pathlib import Path
 from typing import Optional, Tuple
@@ -12,6 +10,52 @@ class FileEditor:
     def __init__(self, root_dir: str):
         # Resolve root dir immediately
         self.root_dir = Path(root_dir).resolve()
+
+    def validate_edit(self, file_path: str, search_text: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate if a search pattern exists in a file without modifying it.
+        
+        Args:
+            file_path: Path to the file to check
+            search_text: Text to find (empty or #ENTIRE_FILE is always valid)
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        try:
+            # Convert to absolute path relative to root
+            full_path = (self.root_dir / file_path).resolve()
+            
+            # Validate file location
+            if not self._is_safe_path(full_path):
+                return False, f"File path {file_path} is outside root directory"
+                
+            # Special cases that are always valid
+            if not search_text.strip() or search_text.strip() == "#ENTIRE_FILE":
+                return True, None
+                
+            # File must exist for non-empty search text
+            if not full_path.exists():
+                return False, f"Cannot find search text in non-existent file: {file_path}"
+                
+            # Read file content
+            try:
+                content = self._read_file(full_path)
+            except UnicodeDecodeError:
+                return False, f"Unable to read {file_path} - file may be binary or use unknown encoding"
+                
+            # Normalize line endings for comparison
+            content = content.replace('\r\n', '\n')
+            search_text = search_text.replace('\r\n', '\n')
+            
+            # Check if search text exists in content
+            if search_text not in content:
+                return False, f"Could not find exact match for search text in {file_path}"
+                
+            return True, None
+            
+        except Exception as e:
+            return False, str(e)
 
     def apply_edit(self, file_path: str, search_text: str, replace_text: str) -> Tuple[bool, Optional[str]]:
         """
