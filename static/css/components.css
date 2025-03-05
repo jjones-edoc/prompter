@@ -126,25 +126,6 @@
   color: var(--bs-primary) !important;
 }
 
-/* Breadcrumb styling */
-.breadcrumb {
-  background-color: rgba(var(--bs-primary-rgb), 0.05);
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  margin-bottom: 1.5rem;
-}
-
-.breadcrumb-item a {
-  color: var(--bs-breadcrumb-color);
-  text-decoration: none;
-  transition: color 0.15s ease-in-out;
-}
-
-.breadcrumb-item a:hover {
-  color: var(--bs-primary);
-  text-decoration: underline;
-}
-
 /* Sticky buttons for file selection page */
 .sticky-buttons {
   position: sticky;
@@ -158,12 +139,7 @@
   margin-right: 0;
 }
 
-/* List group styling */
-.list-group-item-light {
-  background-color: var(--bs-card-bg);
-}
-
-/* Add padding to tooltip text */
+/* Tooltip text */
 .tooltip-inner {
   text-align: left;
   max-width: 300px;
