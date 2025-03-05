@@ -96,6 +96,7 @@ class FileEditor:
     def apply_replacement(self, content: str, search_text: str, replace_text: str, strict_mode: bool = True) -> Optional[str]:
         """
         Apply the replacement to the content. Handles append case and line ending normalization.
+        Special marker #ENTIRE_FILE can be used to replace or delete the entire file.
 
         Args:
             content: The content to modify
@@ -110,6 +111,14 @@ class FileEditor:
         content = content.replace('\r\n', '\n')
         search_text = search_text.replace('\r\n', '\n')
         replace_text = replace_text.replace('\r\n', '\n')
+
+        # Handle special case for entire file operations
+        if search_text.strip() == "#ENTIRE_FILE":
+            # For file deletion (empty replace text)
+            if not replace_text.strip():
+                return ""
+            # For complete file replacement
+            return replace_text
 
         # Handle append case
         if not search_text.strip():

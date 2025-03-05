@@ -87,12 +87,3 @@ class ClaudeResponseProcessor:
         self.results['edited_files'] = list(dict.fromkeys(self.results['edited_files']))
 
         return self.results
-
-    def validate_files_exist(self, files: List[str]) -> List[str]:
-        """Check if files exist and return list of missing files"""
-        missing_files = []
-        for file_path in files:
-            full_path = (self.root_dir / file_path).resolve()
-            if not full_path.exists() or not full_path.is_file():
-                missing_files.append(file_path)
-        return missing_files
