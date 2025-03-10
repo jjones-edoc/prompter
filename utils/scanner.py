@@ -1,6 +1,8 @@
 import os
 import pathspec
 import tiktoken
+import hashlib
+import time
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
@@ -20,6 +22,8 @@ class FileInfo:
     size: int
     type: str
     token_count: int = 0
+    file_hash: str = ""
+    last_modified: int = 0
 
 
 @dataclass
@@ -33,7 +37,7 @@ class DirInfo:
 class Scanner:
     """
     Enhanced file system handler that respects .gitignore rules, handles directory navigation,
-    and provides token counting for files.
+    and provides token counting, file hashing, and modification tracking for files.
     """
     ALWAYS_HIDDEN = {'.git', '__pycache__', '.vscode', '.idea', '.venv'}
     SUPPORTED_TEXT_EXTENSIONS = {
@@ -235,6 +239,9 @@ class Scanner:
                 else:
                     # Count tokens for this file
                     token_count = self.count_tokens(entry.path)
+                    # Get file hash and last modified time
+                    file_hash = self.calculate_file_hash(entry.path)
+                    last_modified = int(os.path.getmtime(entry.path))
 
                     result['files'].append({
                         'name': entry.name,
@@ -242,7 +249,9 @@ class Scanner:
                         'full_path': entry.path,
                         'size': entry.stat().st_size,
                         'type': os.path.splitext(entry.name)[1][1:] or 'unknown',
-                        'token_count': token_count
+                        'token_count': token_count,
+                        'file_hash': file_hash,
+                        'last_modified': last_modified
                     })
 
             return result
@@ -281,6 +290,27 @@ class Scanner:
                 f"Error calculating tokens for directory {dir_path}: {str(e)}")
 
         return total_tokens
+
+    def calculate_file_hash(self, file_path: str) -> str:
+        """
+        Calculate a SHA-256 hash of a file's contents.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            str: Hexadecimal hash string
+        """
+        hash_sha256 = hashlib.sha256()
+
+        try:
+            with open(file_path, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b''):
+                    hash_sha256.update(chunk)
+            return hash_sha256.hexdigest()
+        except Exception as e:
+            # Return a hash of the error string for files that can't be read
+            return hashlib.sha256(str(e).encode()).hexdigest()
 
     def get_file_contents(self, file_path: str) -> Optional[str]:
         """Read file contents, handling encoding issues."""
@@ -354,8 +384,10 @@ class Scanner:
                                     if len(matching_lines) >= 5:
                                         break
                                         
-                            # Get token count
+                            # Get token count, file hash, and last modified time
                             token_count = self.count_tokens(file_path)
+                            file_hash = self.calculate_file_hash(file_path)
+                            last_modified = int(os.path.getmtime(file_path))
                             
                             # Add to results
                             matching_files.append({
@@ -364,6 +396,8 @@ class Scanner:
                                 'size': os.path.getsize(file_path),
                                 'type': os.path.splitext(file)[1][1:] or 'unknown',
                                 'token_count': token_count,
+                                'file_hash': file_hash,
+                                'last_modified': last_modified,
                                 'match_count': match_count,
                                 'matching_lines': matching_lines
                             })
@@ -419,6 +453,9 @@ class Scanner:
                 else:
                     # Count tokens for this file
                     token_count = self.count_tokens(entry.path)
+                    # Get file hash and last modified time
+                    file_hash = self.calculate_file_hash(entry.path)
+                    last_modified = int(os.path.getmtime(entry.path))
 
                     files.append(FileInfo(
                         name=entry.name,
@@ -426,7 +463,9 @@ class Scanner:
                         full_path=entry.path,
                         size=entry.stat().st_size,
                         type=os.path.splitext(entry.name)[1][1:] or 'unknown',
-                        token_count=token_count
+                        token_count=token_count,
+                        file_hash=file_hash,
+                        last_modified=last_modified
                     ))
 
         except Exception as e:
