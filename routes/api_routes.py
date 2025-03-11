@@ -252,9 +252,10 @@ def register_api_routes(app, scanner):
     def get_next_unsummarized_file():
         """Get the next file without a summary"""
         try:
-            # Import repository file class
+            # Import repository file class and file summarizer
             from utils.database import Database
             from utils.repository_file import RepositoryFile
+            from utils.file_summarizer import generate_summary_prompt
             
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
@@ -285,11 +286,20 @@ def register_api_routes(app, scanner):
                     from utils.helpers import get_language_type
                     language_type = get_language_type(file_path)
                     
+                    # Generate the prompt with repository structure
+                    prompt = generate_summary_prompt(
+                        file_path=file_path,
+                        file_content=file_content,
+                        language_type=language_type,
+                        scanner=scanner
+                    )
+                    
                     return jsonify({
                         'file_path': file_path,
                         'token_count': file_data['token_count'],
                         'content': file_content,
-                        'language_type': language_type
+                        'language_type': language_type,
+                        'prompt': prompt
                     })
                 else:
                     return jsonify({'error': 'File not found on disk'}), 404

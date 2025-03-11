@@ -102,42 +102,27 @@ var UnfamiliarHandler = (function() {
       return;
     }
     
-    // Build the prompt based on the current file
+    // Use the pre-generated prompt from the API response
     const promptContent = document.getElementById('prompt-content');
     
-    // Generate summary prompt with file content
-    const prompt = generateSummaryPrompt(
-      currentFile.file_path,
-      currentFile.content,
-      currentFile.language_type
-    );
-    
-    // Set the prompt content
-    promptContent.value = prompt;
-    
-    // Show the prompt section
-    document.getElementById('prompt-section').classList.remove('d-none');
-    
-    // Auto-select the prompt text for easy copying
-    promptContent.select();
-  }
-  
-  /**
-   * Generate a summary prompt for AI
-   */
-  function generateSummaryPrompt(filePath, fileContent, languageType) {
-    return `Please analyze the following ${languageType} file and extract key information about its structure and purpose.
+    // Check if we have a pre-generated prompt from the API
+    if (currentFile.prompt) {
+      // Use the pre-generated prompt that includes repository structure
+      promptContent.value = currentFile.prompt;
+    } else {
+      // Fallback to simple prompt generation (should not happen with updated API)
+      promptContent.value = `Please analyze the following ${currentFile.language_type} file and extract key information about its structure and purpose.
 
-File: ${filePath}
+File: ${currentFile.file_path}
 
-\`\`\`${languageType}
-${fileContent}
+\`\`\`${currentFile.language_type}
+${currentFile.content}
 \`\`\`
 
 Extract and parse the file content into the following format:
 
 <FILE>
-<PATH>${filePath}</PATH>
+<PATH>${currentFile.file_path}</PATH>
 <SUMMARY>
 [Provide a concise 2-4 sentence description of the file's purpose and functionality. Focus on what this file does, what components it defines, and its role in the overall system. Be specific and technical, but clear.]
 </SUMMARY>
@@ -145,16 +130,23 @@ Extract and parse the file content into the following format:
 [List all significant classes, interfaces, functions, methods, and constants defined in this file - one per line. Include only top-level elements and class methods, not local variables or nested utility functions. For each function or method, include a very brief indication of its purpose.]
 </TREE>
 <DEPENDENCIES>
-[List all imports, requires, includes, or other files this file depends on - one per line. Extract actual module/package names, not just import statements. If the file has no explicit dependencies, write "None" on a single line.]
+[List all imports, requires, includes, or other files this file depends on - one per line. Only include files that exist in the repository and use relative paths. If the file has no explicit dependencies, write "None" on a single line.]
 </DEPENDENCIES>
 </FILE>
 
 Important:
 1. The SUMMARY should be technical but readable, explaining what this code does and why it exists
 2. The TREE should list the key components that make up the file's API surface
-3. The DEPENDENCIES section should focus on external libraries and internal project files 
+3. The DEPENDENCIES section should focus on external libraries and internal project files
 4. Maintain the exact XML format with the tags as shown - this will be parsed automatically
 5. Don't add any explanation or notes outside the XML structure`;
+    }
+    
+    // Show the prompt section
+    document.getElementById('prompt-section').classList.remove('d-none');
+    
+    // Auto-select the prompt text for easy copying
+    promptContent.select();
   }
   
   /**
@@ -250,7 +242,11 @@ Important:
         showStatusMessage('process-status', 'Could not find <TREE> tags in the response.', 'danger');
         return;
       }
-      const tree = treeMatch[1].trim();
+      let tree = treeMatch[1].trim();
+      // Handle "None" in tree - replace with empty string
+      if (tree.toLowerCase() === "none") {
+        tree = "";
+      }
       
       // Extract dependencies
       const depsMatch = fileContent.match(/<DEPENDENCIES>\s*([\s\S]*?)\s*<\/DEPENDENCIES>/);
@@ -258,7 +254,11 @@ Important:
         showStatusMessage('process-status', 'Could not find <DEPENDENCIES> tags in the response.', 'danger');
         return;
       }
-      const dependencies = depsMatch[1].trim();
+      let dependencies = depsMatch[1].trim();
+      // Handle "None" in dependencies - replace with empty string
+      if (dependencies.toLowerCase() === "none") {
+        dependencies = "";
+      }
       
       // Create form data
       const formData = new FormData();

@@ -268,12 +268,22 @@ class RepositoryFile:
         
         # Convert lists to JSON strings if provided
         if tree is not None:
-            # Store tree in code_data field as a JSON string
-            code_data = {'tree': tree}
+            # Check for "None" in tree
+            if tree and len(tree) == 1 and tree[0].lower() == "none":
+                # Empty tree structure
+                code_data = {'tree': []}
+            else:
+                # Store tree in code_data field as a JSON string
+                code_data = {'tree': tree}
             file_data['code_data'] = json.dumps(code_data)
             
         if dependencies is not None:
-            file_data['dependencies'] = json.dumps(dependencies)
+            # Check for "None" in dependencies
+            if dependencies and len(dependencies) == 1 and dependencies[0].lower() == "none":
+                # Empty dependencies list
+                file_data['dependencies'] = json.dumps([])
+            else:
+                file_data['dependencies'] = json.dumps(dependencies)
             
         # Save the updated file data
         self.create_or_update(
