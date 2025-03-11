@@ -266,6 +266,22 @@ class Database:
             (search_param, search_param)
         )
         return [dict(row) for row in cursor.fetchall()]
+        
+    def count_files_without_summary(self) -> int:
+        """
+        Count the number of repository files that don't have summary data.
+        
+        Returns:
+            int: Count of files without summaries
+        """
+        cursor = self.execute(
+            """
+            SELECT COUNT(*) as count FROM repository_files
+            WHERE summary IS NULL OR summary = ''
+            """
+        )
+        result = cursor.fetchone()
+        return result['count'] if result else 0
 
 
 class DatabaseTransaction:

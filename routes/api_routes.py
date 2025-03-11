@@ -227,3 +227,23 @@ def register_api_routes(app, scanner):
             return jsonify(response)
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/count_unsummarized_files', methods=['GET'])
+    def count_unsummarized_files():
+        """Get the count of repository files without summaries"""
+        try:
+            # Create a temporary database connection to query the count
+            from utils.database import Database
+            db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+            
+            # Get the count of files without summaries
+            count = db.count_files_without_summary()
+            
+            # Close the database connection
+            db.close()
+            
+            return jsonify({
+                'count': count
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500

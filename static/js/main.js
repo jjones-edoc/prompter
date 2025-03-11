@@ -31,6 +31,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
   
+  // Initialize the unfamiliar files counter
+  initUnfamiliarFilesCounter();
+  
   // Add event listener to recalculate tokens when DOM is fully loaded
   document.addEventListener("DOMContentLoaded", function() {
     // Wait a moment for all checkboxes to be ready
@@ -94,6 +97,54 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', toggleTheme);
   });
 });
+
+/**
+ * Fetch and update the count of unsummarized files
+ */
+function initUnfamiliarFilesCounter() {
+  // Find all unfamiliar files buttons
+  const unfamiliarBtns = document.querySelectorAll('.unfamiliar-files-btn');
+  
+  if (unfamiliarBtns.length === 0) {
+    return; // No buttons found, exit early
+  }
+  
+  // Fetch the count from the API
+  fetch('/api/count_unsummarized_files')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      const count = data.count || 0;
+      
+      // Update all unfamiliar files buttons
+      unfamiliarBtns.forEach(btn => {
+        const countElement = btn.querySelector('.unfamiliar-count');
+        
+        if (count > 0) {
+          // Update the count
+          countElement.textContent = count;
+          
+          // Update the title/tooltip
+          btn.setAttribute('title', `${count} unfamiliar file${count !== 1 ? 's' : ''}`);
+          
+          // Show the button
+          btn.classList.remove('d-none');
+        } else {
+          // Hide the button if count is 0
+          btn.classList.add('d-none');
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching unfamiliar files count:', error);
+      // Hide buttons on error
+      unfamiliarBtns.forEach(btn => btn.classList.add('d-none'));
+    });
+}
 
 function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-bs-theme');
