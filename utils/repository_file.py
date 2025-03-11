@@ -204,3 +204,86 @@ class RepositoryFile:
                     pass
 
         return files
+        
+    def get_next_unsummarized_file(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the next file that doesn't have a summary.
+        
+        Returns:
+            Dict or None: File data for the next file without a summary, or None if all files have summaries
+        """
+        cursor = self.db.execute(
+            """
+            SELECT * FROM repository_files
+            WHERE summary IS NULL OR summary = ''
+            ORDER BY file_path
+            LIMIT 1
+            """
+        )
+        row = cursor.fetchone()
+        
+        if not row:
+            return None
+            
+        file_data = dict(row)
+        
+        # Process JSON strings if present
+        if file_data.get('code_data'):
+            try:
+                file_data['code_data'] = json.loads(file_data['code_data'])
+            except json.JSONDecodeError:
+                pass
+
+        if file_data.get('dependencies'):
+            try:
+                file_data['dependencies'] = json.loads(
+                    file_data['dependencies'])
+            except json.JSONDecodeError:
+                pass
+                
+        return file_data
+        
+    def update_file_summary(self, file_path: str, summary: str, 
+                          tree: Optional[List[str]] = None, 
+                          dependencies: Optional[List[str]] = None) -> bool:
+        """
+        Update a file's summary, tree, and dependencies.
+        
+        Args:
+            file_path: Path to the file
+            summary: Summary text
+            tree: Optional list of classes, functions, etc.
+            dependencies: Optional list of dependencies
+            
+        Returns:
+            bool: True if updated successfully, False otherwise
+        """
+        # Get the existing file data
+        file_data = self.get_by_path(file_path)
+        if not file_data:
+            return False
+            
+        # Update the fields
+        file_data['summary'] = summary
+        
+        # Convert lists to JSON strings if provided
+        if tree is not None:
+            # Store tree in code_data field as a JSON string
+            code_data = {'tree': tree}
+            file_data['code_data'] = json.dumps(code_data)
+            
+        if dependencies is not None:
+            file_data['dependencies'] = json.dumps(dependencies)
+            
+        # Save the updated file data
+        self.create_or_update(
+            file_path=file_data['file_path'],
+            token_count=file_data['token_count'],
+            file_hash=file_data['file_hash'],
+            summary=file_data['summary'],
+            code_data=file_data.get('code_data'),
+            dependencies=file_data.get('dependencies'),
+            last_modified=file_data['last_modified']
+        )
+        
+        return True

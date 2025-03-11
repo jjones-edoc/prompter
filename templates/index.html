@@ -18,10 +18,10 @@
         <h1 class="h2 text-primary mb-0">Prompter</h1>
         <div class="d-flex align-items-center">
           <!-- Unfamiliar files button - hidden by default, shown via JS when count > 0 -->
-          <div class="unfamiliar-files-btn p-2 me-2 d-none" title="0 unfamiliar files">
+          <a href="{{ url_for('unfamiliar_files') }}" class="unfamiliar-files-btn p-2 me-2 d-none" title="0 unfamiliar files">
             <i class="fas fa-file-alt"></i>
             <span class="unfamiliar-count">0</span>
-          </div>
+          </a>
           <!-- Theme toggle button -->
           <div class="theme-toggle p-2" title="Toggle light/dark mode">
             <i class="fas fa-moon"></i>

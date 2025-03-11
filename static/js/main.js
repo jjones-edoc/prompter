@@ -34,6 +34,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize the unfamiliar files counter
   initUnfamiliarFilesCounter();
   
+  // Initialize the unfamiliar files handler if we're on that page
+  if (typeof UnfamiliarHandler !== 'undefined') {
+    UnfamiliarHandler.init();
+  }
+  
   // Add event listener to recalculate tokens when DOM is fully loaded
   document.addEventListener("DOMContentLoaded", function() {
     // Wait a moment for all checkboxes to be ready

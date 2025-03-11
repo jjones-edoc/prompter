@@ -247,3 +247,150 @@ def register_api_routes(app, scanner):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/get_next_unsummarized_file', methods=['GET'])
+    def get_next_unsummarized_file():
+        """Get the next file without a summary"""
+        try:
+            # Import repository file class
+            from utils.database import Database
+            from utils.repository_file import RepositoryFile
+            
+            # Create database connection
+            db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+            repo_file = RepositoryFile(db)
+            
+            # Get the next file without a summary
+            file_data = repo_file.get_next_unsummarized_file()
+            
+            # Close the database connection
+            db.close()
+            
+            if file_data:
+                # Get the file contents
+                file_path = file_data['file_path']
+                abs_path = os.path.join(app.config['PROMPTER_DIRECTORY'], file_path)
+                
+                # Make sure the file exists
+                if os.path.isfile(abs_path):
+                    try:
+                        with open(abs_path, 'r', encoding='utf-8') as f:
+                            file_content = f.read()
+                    except UnicodeDecodeError:
+                        # Try another encoding if UTF-8 fails
+                        with open(abs_path, 'r', encoding='latin-1') as f:
+                            file_content = f.read()
+                    
+                    # Get the language type
+                    from utils.helpers import get_language_type
+                    language_type = get_language_type(file_path)
+                    
+                    return jsonify({
+                        'file_path': file_path,
+                        'token_count': file_data['token_count'],
+                        'content': file_content,
+                        'language_type': language_type
+                    })
+                else:
+                    return jsonify({'error': 'File not found on disk'}), 404
+            else:
+                return jsonify({'message': 'No unsummarized files found'}), 404
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/update_file_summary', methods=['POST'])
+    def update_file_summary():
+        """Update a file's summary, tree, and dependencies"""
+        try:
+            # Get request data
+            file_path = request.form.get('file_path')
+            summary = request.form.get('summary')
+            tree = request.form.get('tree')
+            dependencies = request.form.get('dependencies')
+            
+            # Validate required fields
+            if not file_path or not summary:
+                return jsonify({'error': 'File path and summary are required'}), 400
+                
+            # Process tree and dependencies if provided
+            tree_list = tree.splitlines() if tree else None
+            dependencies_list = dependencies.splitlines() if dependencies else None
+            
+            # Import repository file class
+            from utils.database import Database
+            from utils.repository_file import RepositoryFile
+            
+            # Create database connection
+            db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+            repo_file = RepositoryFile(db)
+            
+            # Update the file summary
+            success = repo_file.update_file_summary(
+                file_path=file_path,
+                summary=summary,
+                tree=tree_list,
+                dependencies=dependencies_list
+            )
+            
+            # Close the database connection
+            db.close()
+            
+            if success:
+                # Get the updated count of unsummarized files
+                db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+                remaining_count = db.count_files_without_summary()
+                db.close()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'File summary updated successfully',
+                    'remaining_count': remaining_count
+                })
+            else:
+                return jsonify({'error': 'File not found in database'}), 404
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+            
+    @app.route('/api/skip_file', methods=['POST'])
+    def skip_file():
+        """Skip a file by marking it with an empty summary"""
+        try:
+            # Get request data
+            file_path = request.form.get('file_path')
+            
+            # Validate required fields
+            if not file_path:
+                return jsonify({'error': 'File path is required'}), 400
+                
+            # Import repository file class
+            from utils.database import Database
+            from utils.repository_file import RepositoryFile
+            
+            # Create database connection
+            db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+            repo_file = RepositoryFile(db)
+            
+            # Update with an empty summary to mark as processed but skipped
+            success = repo_file.update_file_summary(
+                file_path=file_path,
+                summary="[Skipped]"
+            )
+            
+            # Close the database connection
+            db.close()
+            
+            if success:
+                # Get the updated count of unsummarized files
+                db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+                remaining_count = db.count_files_without_summary()
+                db.close()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'File skipped successfully',
+                    'remaining_count': remaining_count
+                })
+            else:
+                return jsonify({'error': 'File not found in database'}), 404
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500

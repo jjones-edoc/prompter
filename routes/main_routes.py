@@ -91,6 +91,31 @@ def register_main_routes(app, scanner):
         combined_content += f"### User Query:\n\n{user_prompt}"
 
         return render_template('generated.html', combined_content=combined_content)
+        
+    @app.route('/unfamiliar', methods=['GET'])
+    def unfamiliar_files():
+        """Show the unfamiliar files page for processing files without summaries"""
+        # Create a temporary database connection to get stats
+        from utils.database import Database
+        from utils.repository_file import RepositoryFile
+        
+        db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+        repo_file = RepositoryFile(db)
+        
+        # Get count of files without summaries
+        unsummarized_count = db.count_files_without_summary()
+        
+        # Get the first unsummarized file if available
+        next_file = None
+        if unsummarized_count > 0:
+            next_file = repo_file.get_next_unsummarized_file()
+            
+        # Close the database connection
+        db.close()
+        
+        return render_template('unfamiliar.html', 
+                            unsummarized_count=unsummarized_count,
+                            next_file=next_file)
 
 
 def _collect_files_recursive(scanner, path, file_list):
