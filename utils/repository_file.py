@@ -2,7 +2,7 @@ import os
 import json
 import hashlib
 import time
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Tuple
 
 from utils.database import Database
 
@@ -74,7 +74,8 @@ class RepositoryFile:
             dependencies = json.dumps(dependencies)
 
         # Use provided last_modified or current time
-        current_time = last_modified if last_modified is not None else int(time.time())
+        current_time = last_modified if last_modified is not None else int(
+            time.time())
 
         # Prepare data for database
         file_data = {
@@ -204,11 +205,11 @@ class RepositoryFile:
                     pass
 
         return files
-        
+
     def get_next_unsummarized_file(self) -> Optional[Dict[str, Any]]:
         """
         Get the next file that doesn't have a summary.
-        
+
         Returns:
             Dict or None: File data for the next file without a summary, or None if all files have summaries
         """
@@ -221,12 +222,12 @@ class RepositoryFile:
             """
         )
         row = cursor.fetchone()
-        
+
         if not row:
             return None
-            
+
         file_data = dict(row)
-        
+
         # Process JSON strings if present
         if file_data.get('code_data'):
             try:
@@ -240,21 +241,88 @@ class RepositoryFile:
                     file_data['dependencies'])
             except json.JSONDecodeError:
                 pass
-                
+
         return file_data
-        
-    def update_file_summary(self, file_path: str, summary: str, 
-                          tree: Optional[List[str]] = None, 
-                          dependencies: Optional[List[str]] = None) -> bool:
+
+    def get_multiple_unsummarized_files(self, token_limit: int = 4000) -> List[Dict[str, Any]]:
+        """
+        Get multiple files that don't have a summary, up to the specified token limit.
+
+        Args:
+            token_limit: Maximum total token count for the files
+
+        Returns:
+            List[Dict]: List of file data for files without summaries, respecting the token limit
+        """
+        cursor = self.db.execute(
+            """
+            SELECT * FROM repository_files
+            WHERE summary IS NULL OR summary = ''
+            ORDER BY file_path
+            """
+        )
+        rows = cursor.fetchall()
+
+        files = []
+        total_tokens = 0
+
+        for row in rows:
+            file_data = dict(row)
+            file_tokens = file_data.get('token_count', 0)
+
+            # Stop adding files if we would exceed the token limit
+            if total_tokens + file_tokens > token_limit:
+                # If this is the first file and it exceeds the limit,
+                # include it anyway to ensure we process at least one file
+                if not files:
+                    self._process_json_fields(file_data)
+                    files.append(file_data)
+                break
+
+            # Process JSON strings if present
+            self._process_json_fields(file_data)
+
+            files.append(file_data)
+            total_tokens += file_tokens
+
+            # Stop after 5 files to prevent overwhelming the user
+            if len(files) >= 5:
+                break
+
+        return files
+
+    def _process_json_fields(self, file_data: Dict[str, Any]) -> None:
+        """
+        Process JSON string fields in file data.
+
+        Args:
+            file_data: File data dictionary to process
+        """
+        if file_data.get('code_data'):
+            try:
+                file_data['code_data'] = json.loads(file_data['code_data'])
+            except json.JSONDecodeError:
+                pass
+
+        if file_data.get('dependencies'):
+            try:
+                file_data['dependencies'] = json.loads(
+                    file_data['dependencies'])
+            except json.JSONDecodeError:
+                pass
+
+    def update_file_summary(self, file_path: str, summary: str,
+                            tree: Optional[List[str]] = None,
+                            dependencies: Optional[List[str]] = None) -> bool:
         """
         Update a file's summary, tree, and dependencies.
-        
+
         Args:
             file_path: Path to the file
             summary: Summary text
             tree: Optional list of classes, functions, etc.
             dependencies: Optional list of dependencies
-            
+
         Returns:
             bool: True if updated successfully, False otherwise
         """
@@ -262,10 +330,10 @@ class RepositoryFile:
         file_data = self.get_by_path(file_path)
         if not file_data:
             return False
-            
+
         # Update the fields
         file_data['summary'] = summary
-        
+
         # Convert lists to JSON strings if provided
         if tree is not None:
             # Check for "None" in tree
@@ -276,7 +344,7 @@ class RepositoryFile:
                 # Store tree in code_data field as a JSON string
                 code_data = {'tree': tree}
             file_data['code_data'] = json.dumps(code_data)
-            
+
         if dependencies is not None:
             # Check for "None" in dependencies
             if dependencies and len(dependencies) == 1 and dependencies[0].lower() == "none":
@@ -284,7 +352,7 @@ class RepositoryFile:
                 file_data['dependencies'] = json.dumps([])
             else:
                 file_data['dependencies'] = json.dumps(dependencies)
-            
+
         # Save the updated file data
         self.create_or_update(
             file_path=file_data['file_path'],
@@ -295,5 +363,53 @@ class RepositoryFile:
             dependencies=file_data.get('dependencies'),
             last_modified=file_data['last_modified']
         )
-        
+
         return True
+
+    def update_multiple_file_summaries(self, file_summaries: List[Dict[str, Any]]) -> Tuple[int, List[str]]:
+        """
+        Update summaries for multiple files at once.
+
+        Args:
+            file_summaries: List of dictionaries containing file_path, summary, tree, and dependencies
+
+        Returns:
+            Tuple[int, List[str]]: Count of successfully updated files and list of error messages
+        """
+        success_count = 0
+        errors = []
+
+        for file_data in file_summaries:
+            try:
+                file_path = file_data.get('file_path')
+                summary = file_data.get('summary')
+                tree = file_data.get('tree', [])
+                dependencies = file_data.get('dependencies', [])
+
+                if not file_path or not summary:
+                    errors.append(
+                        f"Missing required data for file: {file_path}")
+                    continue
+
+                # Convert string to list if necessary
+                if isinstance(tree, str):
+                    tree = tree.splitlines()
+                if isinstance(dependencies, str):
+                    dependencies = dependencies.splitlines()
+
+                success = self.update_file_summary(
+                    file_path=file_path,
+                    summary=summary,
+                    tree=tree,
+                    dependencies=dependencies
+                )
+
+                if success:
+                    success_count += 1
+                else:
+                    errors.append(f"Failed to update file: {file_path}")
+            except Exception as e:
+                errors.append(
+                    f"Error updating {file_data.get('file_path', 'unknown')}: {str(e)}")
+
+        return success_count, errors
