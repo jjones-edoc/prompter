@@ -125,6 +125,13 @@ var UnfamiliarHandler = (function () {
       })
       .then((data) => {
         if (data) {
+          // Check if we got a message instead of a file
+          if (data.message && !data.file_path) {
+            console.log("Message from API:", data.message);
+            showNoFilesState();
+            return;
+          }
+          
           // Store the current file data
           currentFile = data;
 
@@ -139,6 +146,9 @@ var UnfamiliarHandler = (function () {
           // Hide the prompt and response sections
           document.getElementById("prompt-section").classList.add("d-none");
           document.getElementById("response-section").classList.add("d-none");
+        } else {
+          // No data returned means no files to process
+          showNoFilesState();
         }
       })
       .catch((error) => {
@@ -194,7 +204,12 @@ var UnfamiliarHandler = (function () {
           document.getElementById("prompt-section").classList.add("d-none");
           document.getElementById("response-section").classList.add("d-none");
         } else {
-          // No files found
+          // No files found or message received
+          if (data && data.message) {
+            console.log("Message from API:", data.message);
+          }
+          
+          showNoFilesState();
           fileList.innerHTML = `
             <div class="text-center p-3 text-muted">
               No unsummarized files found.

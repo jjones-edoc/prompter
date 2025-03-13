@@ -274,14 +274,20 @@ class Database:
         Returns:
             int: Count of files without summaries
         """
-        cursor = self.execute(
-            """
-            SELECT COUNT(*) as count FROM repository_files
-            WHERE summary IS NULL OR summary = ''
-            """
-        )
-        result = cursor.fetchone()
-        return result['count'] if result else 0
+        try:
+            cursor = self.execute(
+                """
+                SELECT COUNT(*) as count FROM repository_files
+                WHERE summary IS NULL OR summary = ''
+                """
+            )
+            result = cursor.fetchone()
+            count = result['count'] if result else 0
+            print(f"Database count of unsummarized files: {count}")
+            return count
+        except Exception as e:
+            print(f"Error counting files without summary: {str(e)}")
+            return 0
 
 
 class DatabaseTransaction:

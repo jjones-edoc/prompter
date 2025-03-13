@@ -261,6 +261,16 @@ def register_api_routes(app, scanner):
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
             
+            # Get the count of files without summaries first
+            unsummarized_count = db.count_files_without_summary()
+            
+            # Log the count for debugging
+            app.logger.info(f"Unsummarized files count: {unsummarized_count}")
+            
+            if unsummarized_count == 0:
+                db.close()
+                return jsonify({'message': 'No unsummarized files found'}), 200
+            
             # Get the next file without a summary
             file_data = repo_file.get_next_unsummarized_file()
             
@@ -302,10 +312,19 @@ def register_api_routes(app, scanner):
                         'prompt': prompt
                     })
                 else:
-                    return jsonify({'error': 'File not found on disk'}), 404
+                    # File exists in DB but not on disk
+                    app.logger.warning(f"File not found on disk: {file_path}")
+                    # Skip this file in the DB by marking it as processed with a special flag
+                    db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+                    repo_file = RepositoryFile(db)
+                    repo_file.update_file_summary(file_path=file_path, summary="[File not found on disk - skipped]")
+                    db.close()
+                    # Try to get the next file instead
+                    return get_next_unsummarized_file()
             else:
-                return jsonify({'message': 'No unsummarized files found'}), 404
+                return jsonify({'message': 'No valid unsummarized files found'}), 200
         except Exception as e:
+            app.logger.error(f"Error in get_next_unsummarized_file: {str(e)}")
             return jsonify({'error': str(e)}), 500
             
     @app.route('/api/get_multiple_unsummarized_files', methods=['GET'])
@@ -325,6 +344,21 @@ def register_api_routes(app, scanner):
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
             
+            # Get the count of files without summaries first
+            unsummarized_count = db.count_files_without_summary()
+            
+            # Log the count for debugging
+            app.logger.info(f"Unsummarized files count for multi-file: {unsummarized_count}")
+            
+            if unsummarized_count == 0:
+                db.close()
+                return jsonify({
+                    'message': 'No unsummarized files found',
+                    'files': [],
+                    'total_tokens': 0,
+                    'file_count': 0
+                }), 200
+            
             # Get multiple files without summaries
             files_data = repo_file.get_multiple_unsummarized_files(token_limit)
             
@@ -332,10 +366,17 @@ def register_api_routes(app, scanner):
             db.close()
             
             if not files_data:
-                return jsonify({'message': 'No unsummarized files found'}), 404
+                return jsonify({
+                    'message': 'No unsummarized files found',
+                    'files': [],
+                    'total_tokens': 0,
+                    'file_count': 0
+                }), 200
                 
             # Process each file to add content and language type
             processed_files = []
+            skipped_files = []
+            
             for file_data in files_data:
                 file_path = file_data['file_path']
                 abs_path = os.path.join(app.config['PROMPTER_DIRECTORY'], file_path)
@@ -347,8 +388,14 @@ def register_api_routes(app, scanner):
                             file_content = f.read()
                     except UnicodeDecodeError:
                         # Try another encoding if UTF-8 fails
-                        with open(abs_path, 'r', encoding='latin-1') as f:
-                            file_content = f.read()
+                        try:
+                            with open(abs_path, 'r', encoding='latin-1') as f:
+                                file_content = f.read()
+                        except Exception as e:
+                            # Skip this file and log the error
+                            app.logger.error(f"Error reading file {file_path}: {str(e)}")
+                            skipped_files.append(file_path)
+                            continue
                     
                     # Get the language type
                     language_type = get_language_type(file_path)
@@ -360,6 +407,28 @@ def register_api_routes(app, scanner):
                         'content': file_content,
                         'language_type': language_type
                     })
+                else:
+                    # File exists in DB but not on disk - mark it for skipping
+                    skipped_files.append(file_path)
+            
+            # Skip files that don't exist on disk
+            if skipped_files:
+                app.logger.warning(f"Files not found on disk: {', '.join(skipped_files)}")
+                # Mark these files as processed with a special flag
+                db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+                repo_file = RepositoryFile(db)
+                for file_path in skipped_files:
+                    repo_file.update_file_summary(file_path=file_path, summary="[File not found on disk - skipped]")
+                db.close()
+            
+            # If no valid files were processed, return appropriate response
+            if not processed_files:
+                return jsonify({
+                    'message': 'No valid unsummarized files found',
+                    'files': [],
+                    'total_tokens': 0,
+                    'file_count': 0
+                }), 200
             
             # Generate a combined prompt
             combined_prompt = "Please analyze the following files and extract key information about their structure and purpose.\n\n"
@@ -403,6 +472,7 @@ Important:
                 'file_count': len(processed_files)
             })
         except Exception as e:
+            app.logger.error(f"Error in get_multiple_unsummarized_files: {str(e)}")
             return jsonify({'error': str(e)}), 500
             
     @app.route('/api/update_file_summary', methods=['POST'])

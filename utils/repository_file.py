@@ -213,6 +213,19 @@ class RepositoryFile:
         Returns:
             Dict or None: File data for the next file without a summary, or None if all files have summaries
         """
+        # First, check if there are any files without summaries
+        count_cursor = self.db.execute(
+            """
+            SELECT COUNT(*) as count FROM repository_files
+            WHERE summary IS NULL OR summary = ''
+            """
+        )
+        count_row = count_cursor.fetchone()
+        if not count_row or count_row['count'] == 0:
+            print("No unsummarized files found in database.")
+            return None
+            
+        # Get the next file without a summary
         cursor = self.db.execute(
             """
             SELECT * FROM repository_files
@@ -224,6 +237,7 @@ class RepositoryFile:
         row = cursor.fetchone()
 
         if not row:
+            print("Query returned no rows despite count > 0.")
             return None
 
         file_data = dict(row)
