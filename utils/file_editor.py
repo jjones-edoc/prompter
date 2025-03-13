@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional, Tuple
 import tempfile
+import shutil
 
 
 class FileEditor:
@@ -14,48 +15,152 @@ class FileEditor:
     def validate_edit(self, file_path: str, search_text: str) -> Tuple[bool, Optional[str]]:
         """
         Validate if a search pattern exists in a file without modifying it.
-        
+
         Args:
             file_path: Path to the file to check
             search_text: Text to find (empty or #ENTIRE_FILE is always valid)
-            
+
         Returns:
             Tuple of (is_valid, error_message)
         """
         try:
             # Convert to absolute path relative to root
             full_path = (self.root_dir / file_path).resolve()
-            
+
             # Validate file location
             if not self._is_safe_path(full_path):
                 return False, f"File path {file_path} is outside root directory"
-                
+
             # Special cases that are always valid
             if not search_text.strip() or search_text.strip() == "#ENTIRE_FILE":
                 return True, None
-                
+
             # File must exist for non-empty search text
             if not full_path.exists():
                 return False, f"Cannot find search text in non-existent file: {file_path}"
-                
+
             # Read file content
             try:
                 content = self._read_file(full_path)
             except UnicodeDecodeError:
                 return False, f"Unable to read {file_path} - file may be binary or use unknown encoding"
-                
+
             # Normalize line endings for comparison
             content = content.replace('\r\n', '\n')
             search_text = search_text.replace('\r\n', '\n')
-            
+
             # Check if search text exists in content
             if search_text not in content:
                 return False, f"Could not find exact match for search text in {file_path}"
-                
+
             return True, None
-            
+
         except Exception as e:
             return False, str(e)
+
+    def validate_move(self, source_path: str, dest_path: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate that a file can be moved from source to destination.
+
+        Args:
+            source_path: Path of file to move
+            dest_path: Destination path for the file
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        try:
+            # Convert to absolute paths relative to root
+            full_source = (self.root_dir / source_path).resolve()
+
+            # For destination, we don't resolve yet since it might not exist
+            # Just get the absolute path first
+            full_dest = (self.root_dir / dest_path).absolute()
+
+            # Validate source path
+            if not self._is_safe_path(full_source):
+                return False, f"Source path {source_path} is outside root directory"
+
+            # Validate destination path - just check if it would be within the root directory
+            if not self._is_safe_path(full_dest):
+                return False, f"Destination path {dest_path} is outside root directory"
+
+            # Check source exists
+            if not full_source.exists():
+                return False, f"Source file does not exist: {source_path}"
+
+            # Check if source is a file
+            if not full_source.is_file():
+                return False, f"Source path is not a file: {source_path}"
+
+            # All parent directories in the destination are considered valid
+            # as long as they're within the root directory, which we've already checked
+
+            return True, None
+
+        except Exception as e:
+            return False, str(e)
+
+    def move_file(self, source_path: str, dest_path: str) -> Tuple[bool, Optional[str]]:
+        """
+        Move a file from source_path to dest_path.
+        Creates destination directory if it doesn't exist.
+
+        Args:
+            source_path: Path to the source file
+            dest_path: Path to the destination file
+
+        Returns:
+            Tuple of (success, error_message)
+        """
+        try:
+            # Validate the move operation first
+            is_valid, error_msg = self.validate_move(source_path, dest_path)
+            if not is_valid:
+                return False, error_msg
+
+            # Convert to absolute paths
+            full_source = (self.root_dir / source_path).resolve()
+            full_dest = (self.root_dir / dest_path).absolute()
+
+            # Create destination directory structure if needed
+            try:
+                full_dest.parent.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                return False, f"Failed to create destination directory structure: {str(e)}"
+
+            # If destination file already exists, back it up
+            temp_backup = None
+            if full_dest.exists():
+                try:
+                    # Create temporary backup
+                    temp_fd, temp_backup = tempfile.mkstemp(
+                        dir=str(full_dest.parent))
+                    os.close(temp_fd)
+                    shutil.copy2(full_dest, temp_backup)
+                except Exception as e:
+                    return False, f"Failed to create backup of existing destination file: {str(e)}"
+
+            try:
+                # Ensure atomic operation by first copying then deleting
+                # This is safer than a direct move in case of interruption
+                shutil.copy2(full_source, full_dest)
+                full_source.unlink()
+
+                # Remove temp backup if everything worked
+                if temp_backup and Path(temp_backup).exists():
+                    Path(temp_backup).unlink()
+
+                return True, None
+
+            except Exception as e:
+                # Restore from backup if something went wrong
+                if temp_backup and Path(temp_backup).exists():
+                    Path(temp_backup).replace(full_dest)
+                raise e
+
+        except Exception as e:
+            return False, f"Failed to move file: {str(e)}"
 
     def apply_edit(self, file_path: str, search_text: str, replace_text: str) -> Tuple[bool, Optional[str]]:
         """

@@ -20,9 +20,19 @@ class EditBlock:
 
 
 @dataclass
+class MoveOperation:
+    """Represents a file move operation from the AI response"""
+    source_path: str
+    dest_path: str
+    line_number: int
+    raw_command: str
+
+
+@dataclass
 class ParseResult:
     """Contains parsing results and any errors"""
     blocks: List[EditBlock]
+    move_operations: List[MoveOperation]  # New field for move operations
     errors: List[Tuple[int, str]]  # Line number and error message
 
 
@@ -40,6 +50,9 @@ class ResponseParser:
         'divider': r"^={5,}\s*$",
         'tail': r"^>{5,}\s*REPLACE\s*$"
     }
+
+    # Regex pattern for file move directive
+    MOVE_FILE_PATTERN = r"^#MOVE_FILE:\s*([^\s]+)\s*->\s*([^\s]+)\s*$"
 
     def __init__(self, valid_files: List[str] = None):
         """
@@ -117,6 +130,22 @@ class ResponseParser:
         pattern = self.VALID_MARKER_PATTERN[marker_type]
         return bool(re.match(pattern, self._normalize_marker(line)))
 
+    def is_move_directive(self, line: str) -> Tuple[bool, Optional[str], Optional[str]]:
+        """
+        Check if a line is a file move directive and extract source and destination paths.
+
+        Args:
+            line: Line to check
+
+        Returns:
+            Tuple of (is_move_directive, source_path, dest_path)
+        """
+        match = re.match(self.MOVE_FILE_PATTERN, line.strip())
+        if match:
+            source_path, dest_path = match.groups()
+            return True, source_path, dest_path
+        return False, None, None
+
     def _extract_lines(self, lines: List[str], start: int, end: int) -> Tuple[str, str]:
         """
         Extract and join lines between start and end indices.
@@ -170,13 +199,14 @@ class ResponseParser:
         """
         self.active_file = None
         blocks = []
+        move_operations = []  # New list for move operations
         errors = []
 
         # Normalize line endings in the input text while preserving original endings in content
         lines = response_text.splitlines(keepends=True)
 
         if not lines:
-            return ParseResult(blocks=[], errors=[])
+            return ParseResult(blocks=[], move_operations=[], errors=[])
 
         in_block = False
         i = 0
@@ -193,6 +223,28 @@ class ResponseParser:
                     continue
 
                 line = lines[i].rstrip('\r\n')
+
+                # Check for file move directive
+                is_move, source_path, dest_path = self.is_move_directive(line)
+                if is_move:
+                    # Validate source and destination paths
+                    if not self.validate_file_path(source_path):
+                        raise ValueError(
+                            f"Invalid source path in move directive: {source_path}")
+                    if not self.validate_file_path(dest_path):
+                        raise ValueError(
+                            f"Invalid destination path in move directive: {dest_path}")
+
+                    # Create move operation
+                    move_op = MoveOperation(
+                        source_path=source_path,
+                        dest_path=dest_path,
+                        line_number=i + 1,
+                        raw_command=line
+                    )
+                    move_operations.append(move_op)
+                    i += 1
+                    continue
 
                 # Not in a block - look for file path or start marker
                 if not in_block:
@@ -246,7 +298,7 @@ class ResponseParser:
             errors.append(
                 (len(lines), "Reached end of input while still in an edit block"))
 
-        return ParseResult(blocks=blocks, errors=errors)
+        return ParseResult(blocks=blocks, move_operations=move_operations, errors=errors)
 
     def _parse_edit_block(self, lines: List[str], start_idx: int) -> Tuple[Optional[EditBlock], int]:
         """Parse a single edit block starting from the HEAD marker"""

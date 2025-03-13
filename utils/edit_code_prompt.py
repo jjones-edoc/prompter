@@ -63,6 +63,7 @@ Critical rules for SEARCH/REPLACE blocks:
    - To delete code: Use empty REPLACE section
    - To delete an entire file: Use "#ENTIRE_FILE" as the SEARCH content and empty REPLACE section
    - To replace an entire file: Use "#ENTIRE_FILE" as the SEARCH content and the new file content as REPLACE
+   - To move a file: Use the directive "#MOVE_FILE: source_path -> destination_path"
    - If file contains code wrapped/escaped in JSON/XML/quotes, edit the literal contents including container markup
 
 Example of a valid edit command:
@@ -85,6 +86,9 @@ def authenticate_user(username, password):
     # Implementation details
     return True
 >>>>>>> REPLACE
+
+Example of moving a file:
+#MOVE_FILE: old_location/module.py -> new_location/module.py
 
 Rules for edit structure:
 1. The full path and name of the file as given to you must be alone on a line before the opening fence
@@ -154,8 +158,11 @@ def authenticate(username, password):
     return True
 >>>>>>> REPLACE
 
-Step 2: Update existing user class (ENTIRE FILE REPLACEMENT due to extensive changes)
-user.py
+Step 2: Move file to new location
+#MOVE_FILE: old_path/user.py -> new_path/user.py
+
+Step 3: Update existing user class (ENTIRE FILE REPLACEMENT due to extensive changes)
+new_path/user.py
 <<<<<<< SEARCH
 #ENTIRE_FILE
 =======
@@ -171,7 +178,7 @@ class User:
         return self.authenticated
 >>>>>>> REPLACE
 
-Step 3: Minor update to settings (TARGETED CHANGE)
+Step 4: Minor update to settings (TARGETED CHANGE)
 settings.py
 <<<<<<< SEARCH
 # Authentication settings
