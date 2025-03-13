@@ -1,4 +1,4 @@
-def get_coding_prompt():
+def edit_code_prompt():
     """
     Returns the improved coding prompt text for code editing instructions with support
     for breaking down complex changes into multiple steps.
