@@ -224,7 +224,7 @@ class RepositoryFile:
         if not count_row or count_row['count'] == 0:
             print("No unsummarized files found in database.")
             return None
-            
+
         # Get the next file without a summary
         cursor = self.db.execute(
             """
@@ -258,7 +258,7 @@ class RepositoryFile:
 
         return file_data
 
-    def get_multiple_unsummarized_files(self, token_limit: int = 4000) -> List[Dict[str, Any]]:
+    def get_multiple_unsummarized_files(self, token_limit: int = 50000) -> List[Dict[str, Any]]:
         """
         Get multiple files that don't have a summary, up to the specified token limit.
 
@@ -299,8 +299,8 @@ class RepositoryFile:
             files.append(file_data)
             total_tokens += file_tokens
 
-            # Stop after 5 files to prevent overwhelming the user
-            if len(files) >= 5:
+            # Stop after 20 files to prevent overwhelming the user
+            if len(files) >= 20:
                 break
 
         return files

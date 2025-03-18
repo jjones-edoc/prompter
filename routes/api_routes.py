@@ -331,8 +331,8 @@ def register_api_routes(app, scanner):
     def get_multiple_unsummarized_files():
         """Get multiple files without summaries, up to a token limit"""
         try:
-            # Get token limit from request, default to 4000
-            token_limit = request.args.get('token_limit', 4000, type=int)
+            # Get token limit from request, default to 50000
+            token_limit = request.args.get('token_limit', 50000, type=int)
             
             # Import repository file class and file summarizer
             from utils.database import Database

@@ -131,7 +131,7 @@ var UnfamiliarHandler = (function () {
             showNoFilesState();
             return;
           }
-          
+
           // Store the current file data
           currentFile = data;
 
@@ -174,7 +174,7 @@ var UnfamiliarHandler = (function () {
     document.getElementById("total-tokens").textContent = "0";
 
     // Get multiple files from the API
-    fetch("/api/get_multiple_unsummarized_files?token_limit=4000")
+    fetch("/api/get_multiple_unsummarized_files?token_limit=50000")
       .then((response) => {
         if (!response.ok) {
           if (response.status === 404) {
@@ -208,7 +208,7 @@ var UnfamiliarHandler = (function () {
           if (data && data.message) {
             console.log("Message from API:", data.message);
           }
-          
+
           showNoFilesState();
           fileList.innerHTML = `
             <div class="text-center p-3 text-muted">
@@ -344,7 +344,7 @@ Important:
     }
 
     // Use the API to get the combined prompt
-    fetch("/api/get_multiple_unsummarized_files?token_limit=4000")
+    fetch("/api/get_multiple_unsummarized_files?token_limit=50000")
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
