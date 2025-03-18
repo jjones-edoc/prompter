@@ -82,14 +82,19 @@ class RepositoryFile:
             'file_path': file_path,
             'file_hash': file_hash,
             'token_count': token_count,
-            'summary': summary,
-            'code_data': code_data,
-            'dependencies': dependencies,
             'last_modified': current_time
         }
 
-        # Filter out None values
-        file_data = {k: v for k, v in file_data.items() if v is not None}
+        # Explicitly include fields that should be set to NULL when None is provided
+        # This ensures these fields are cleared when intended
+        if summary is not None or 'summary' in locals():
+            file_data['summary'] = summary
+
+        if code_data is not None or 'code_data' in locals():
+            file_data['code_data'] = code_data
+
+        if dependencies is not None or 'dependencies' in locals():
+            file_data['dependencies'] = dependencies
 
         # Insert or update in the database
         return self.db.upsert_repository_file(file_data)
