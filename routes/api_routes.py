@@ -654,51 +654,52 @@ Important:
                     continue
                 filtered_files.append(file)
 
-            # Build the prompt
-            prompt = "Based on the user's query, select the most relevant files from the codebase that would help address the query.\n\n"
-            prompt += "USER QUERY:\n"
+            # Build the prompt with clear section headers and instructions
+            prompt = "# File Selection Task\n"
+            prompt += "Your task is to analyze the user's query and identify the most relevant files from the codebase that would help address the query. DO NOT attempt to solve the user's problem or implement a solution - focus ONLY on selecting the appropriate files.\n\n"
+
+            prompt += "# User Query\n"
             prompt += f"{user_prompt}\n\n"
 
-            prompt += "AVAILABLE FILES:\n"
+            prompt += "# Available Files\n"
             for file in filtered_files:
                 prompt += f"File: {file['file_path']}\n"
-
-                # Add token count
                 prompt += f"Token Count: {file.get('token_count', 0)}\n"
-
-                # Add summary
                 prompt += f"Summary: {file['summary']}\n"
 
                 # Add code structure if available
                 if file.get('code_data') and isinstance(file['code_data'], dict) and file['code_data'].get('tree'):
                     tree = file['code_data']['tree']
                     if tree and len(tree) > 0:
-                        prompt += "Structure: "
-                        prompt += ", ".join(tree)
-                        prompt += "\n"
+                        prompt += f"Structure: {', '.join(tree)}\n"
 
                 # Add dependencies if available
                 if file.get('dependencies') and isinstance(file['dependencies'], list) and len(file['dependencies']) > 0:
-                    prompt += "Dependencies: "
-                    prompt += ", ".join(file['dependencies'])
-                    prompt += "\n"
+                    prompt += f"Dependencies: {', '.join(file['dependencies'])}\n"
 
                 prompt += "\n"
 
-            prompt += "INSTRUCTIONS:\n"
-            prompt += "Analyze the user query and the available files to select the most relevant files that would address the query. Structure your response in the following format:\n\n"
+            prompt += "# Required Response Format\n"
+            prompt += "Your response MUST use exactly the following format with all three sections:\n\n"
 
-            prompt += "# Thoughts\n"
+            prompt += "## Thoughts\n"
             prompt += "Think about which files are most relevant to the user's query based on their descriptions, structures, and token counts. Consider what functionality needs to be included to address the query effectively.\n\n"
 
-            prompt += "# Dependency Considerations\n"
+            prompt += "## Dependency Considerations\n"
             prompt += "Analyze dependencies between files. If you select a file, consider whether its dependencies should also be included. Identify any potential dependency chains necessary for the functionality requested.\n\n"
 
-            prompt += "# Selected Files\n"
-            prompt += "List the file paths you've selected, one per line. Include only files from the AVAILABLE FILES section that are either:\n"
+            prompt += "## Selected Files\n"
+            prompt += "List ONLY the file paths you've selected, one per line, with no additional commentary or explanation. Include only files from the AVAILABLE FILES section that are either:\n"
             prompt += "- Directly relevant to implementing the requested functionality\n"
             prompt += "- Dependencies required by selected files\n"
             prompt += "- Core utilities or helpers needed to understand the system's architecture\n\n"
+
+            prompt += "# Critical Instructions\n"
+            prompt += "1. You MUST include all three sections in your response\n"
+            prompt += "2. In the 'Selected Files' section, include ONLY file paths - one per line with NO additional commentary\n"
+            prompt += "3. DO NOT attempt to solve the user's problem or provide implementation details\n"
+            prompt += "4. Select ONLY files that exist in the 'Available Files' section\n"
+            prompt += "5. Your role is to identify relevant files, NOT to create a solution\n"
 
             return jsonify({
                 'success': True,
