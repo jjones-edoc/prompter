@@ -692,7 +692,8 @@ Important:
             prompt += "List ONLY the file paths you've selected, one per line, with no additional commentary or explanation. Include only files from the AVAILABLE FILES section that are either:\n"
             prompt += "- Directly relevant to implementing the requested functionality\n"
             prompt += "- Dependencies required by selected files\n"
-            prompt += "- Core utilities or helpers needed to understand the system's architecture\n\n"
+            prompt += "- Core utilities or helpers needed to understand the system's architecture\n"
+            prompt += "- ANY files you mentioned or identified in the 'Dependency Considerations' section\n\n"
 
             prompt += "# Critical Instructions\n"
             prompt += "1. You MUST include all three sections in your response\n"
@@ -700,6 +701,7 @@ Important:
             prompt += "3. DO NOT attempt to solve the user's problem or provide implementation details\n"
             prompt += "4. Select ONLY files that exist in the 'Available Files' section\n"
             prompt += "5. Your role is to identify relevant files, NOT to create a solution\n"
+            prompt += "6. IMPORTANT: Every file mentioned in your 'Dependency Considerations' section MUST appear in the 'Selected Files' list\n"
 
             return jsonify({
                 'success': True,
