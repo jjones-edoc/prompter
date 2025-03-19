@@ -646,18 +646,25 @@ Important:
             # Close the database connection
             db.close()
 
+            # Filter out files that don't have a summary or have been skipped
+            filtered_files = []
+            for file in files:
+                # Skip files without a summary or with "[Skipped]" in the summary
+                if not file.get('summary') or not file['summary'].strip() or '[Skipped]' in file['summary']:
+                    continue
+                filtered_files.append(file)
+
             # Build the prompt
             prompt = "Based on the user's query, select the most relevant files from the codebase that would help address the query.\n\n"
             prompt += "USER QUERY:\n"
             prompt += f"{user_prompt}\n\n"
 
             prompt += "AVAILABLE FILES:\n"
-            for file in files:
+            for file in filtered_files:
                 prompt += f"File: {file['file_path']}\n"
 
-                # Add summary if available
-                if file.get('summary') and file['summary'].strip() and '[Skipped]' not in file['summary']:
-                    prompt += f"Summary: {file['summary']}\n"
+                # Add summary
+                prompt += f"Summary: {file['summary']}\n"
 
                 # Add code structure if available
                 if file.get('code_data') and isinstance(file['code_data'], dict) and file['code_data'].get('tree'):
