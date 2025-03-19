@@ -30,6 +30,7 @@ class RepositoryUpdater:
             'updated': 0,
             'added': 0,
             'skipped': 0,
+            'deleted': 0,
             'errors': 0
         }
 
@@ -37,6 +38,7 @@ class RepositoryUpdater:
         """
         Update the repository_files table based on the current file system state.
         Only updates entries where the modification time has changed.
+        Removes database entries for files that no longer exist in the file system.
 
         Returns:
             Dict with statistics about the operation
@@ -47,6 +49,7 @@ class RepositoryUpdater:
             'updated': 0,
             'added': 0,
             'skipped': 0,
+            'deleted': 0,
             'errors': 0
         }
 
@@ -56,6 +59,19 @@ class RepositoryUpdater:
 
         # Get all existing file records
         db_files = {file['file_path']: file for file in self.repo_file.get_all()}
+
+        # Identify files that exist in DB but not in filesystem (deleted files)
+        deleted_files = set(db_files.keys()) - all_files
+        
+        # Delete entries for files that no longer exist
+        for file_path in deleted_files:
+            try:
+                self.repo_file.delete(file_path)
+                self.stats['deleted'] += 1
+                print(f"Deleted database entry for removed file: {file_path}")
+            except Exception as e:
+                print(f"Error deleting database entry for {file_path}: {str(e)}")
+                self.stats['errors'] += 1
 
         # Process each file
         for file_path in all_files:

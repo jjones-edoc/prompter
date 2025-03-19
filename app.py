@@ -28,6 +28,7 @@ def create_app(directory: str, scan_on_startup: bool = True):
         stats = repository_updater.update_repository()
         app.logger.info(f"Repository scan completed: {stats['scanned']} files scanned, "
                         f"{stats['added']} added, {stats['updated']} updated, "
+                        f"{stats['deleted']} deleted, "
                         f"{stats['skipped']} skipped, {stats['errors']} errors")
 
     # Register route blueprints
