@@ -1,39 +1,13 @@
 import re
-from dataclasses import dataclass
 from typing import List, Optional, Tuple, Dict
 from pathlib import Path
-
-
-@dataclass
-class EditBlock:
-    """
-    Represents a parsed edit block from the AI response
-    Stores both original text and normalized versions for comparison
-    """
-    file_path: str
-    search_text: str  # Original text with original line endings
-    replace_text: str  # Original text with original line endings
-    raw_command: str
-    line_number: int
-    normalized_search: str  # Text with normalized line endings for comparison
-    normalized_replace: str  # Text with normalized line endings for comparison
-
-
-@dataclass
-class MoveOperation:
-    """Represents a file move operation from the AI response"""
-    source_path: str
-    dest_path: str
-    line_number: int
-    raw_command: str
-
-
-@dataclass
-class ParseResult:
-    """Contains parsing results and any errors"""
-    blocks: List[EditBlock]
-    move_operations: List[MoveOperation]  # New field for move operations
-    errors: List[Tuple[int, str]]  # Line number and error message
+from utils.models import EditBlock, MoveOperation, ParseResult
+from utils.normalization import (
+    normalize_line_endings,
+    extract_and_normalize_text,
+    normalize_marker,
+    split_with_line_endings
+)
 
 
 class ResponseParser:
@@ -89,33 +63,6 @@ class ResponseParser:
 
         return normalized_path in self.valid_files
 
-    def normalize_line_endings(self, text: str) -> str:
-        """
-        Normalize line endings to LF for comparison purposes.
-        Preserves empty lines and whitespace other than line endings.
-
-        Args:
-            text: Text to normalize
-
-        Returns:
-            str: Text with normalized line endings
-        """
-        # First convert all line endings to LF
-        text = text.replace('\r\n', '\n').replace('\r', '\n')
-        return text
-
-    def _normalize_marker(self, line: str) -> str:
-        """
-        Normalize marker line while preserving required parts.
-
-        Args:
-            line: Marker line to normalize
-
-        Returns:
-            str: Normalized marker
-        """
-        return ' '.join(line.split())
-
     def is_marker(self, line: str, marker_type: str) -> bool:
         """
         Check if line matches exactly one of the valid marker patterns.
@@ -128,7 +75,7 @@ class ResponseParser:
             bool: True if marker is valid, False otherwise
         """
         pattern = self.VALID_MARKER_PATTERN[marker_type]
-        return bool(re.match(pattern, self._normalize_marker(line)))
+        return bool(re.match(pattern, normalize_marker(line)))
 
     def is_move_directive(self, line: str) -> Tuple[bool, Optional[str], Optional[str]]:
         """
@@ -146,46 +93,6 @@ class ResponseParser:
             return True, source_path, dest_path
         return False, None, None
 
-    def _extract_lines(self, lines: List[str], start: int, end: int) -> Tuple[str, str]:
-        """
-        Extract and join lines between start and end indices.
-        Returns both original and normalized versions.
-        Preserves ALL whitespace except line endings in normalized version.
-
-        Args:
-            lines: All lines from the response
-            start: Starting index
-            end: Ending index
-
-        Returns:
-            Tuple[str, str]: (original_text, normalized_text)
-        """
-        if start >= end:
-            return "", ""
-
-        # Get lines between markers
-        extract_lines = lines[start:end]
-
-        # Only remove empty lines at start and end
-        while extract_lines and not extract_lines[0].rstrip('\r\n'):
-            extract_lines.pop(0)
-        while extract_lines and not extract_lines[-1].rstrip('\r\n'):
-            extract_lines.pop()
-
-        if not extract_lines:
-            return "", ""
-
-        # Join preserving original line endings
-        original_text = "".join(
-            line if line.endswith(('\r\n', '\n', '\r')) else line + '\n'
-            for line in extract_lines
-        )
-
-        # Create normalized version for comparison
-        normalized_text = self.normalize_line_endings(original_text)
-
-        return original_text, normalized_text
-
     def parse_response(self, response_text: str) -> ParseResult:
         """
         Parse the AI response into a list of edit blocks with error tracking.
@@ -202,8 +109,8 @@ class ResponseParser:
         move_operations = []  # New list for move operations
         errors = []
 
-        # Normalize line endings in the input text while preserving original endings in content
-        lines = response_text.splitlines(keepends=True)
+        # Use the utility function to split text while preserving line endings
+        lines = split_with_line_endings(response_text)
 
         if not lines:
             return ParseResult(blocks=[], move_operations=[], errors=[])
@@ -343,10 +250,10 @@ class ResponseParser:
         if not (start_idx < divider_idx < tail_idx):
             raise ValueError("Invalid edit block structure")
 
-        # Extract both original and normalized versions
-        search_text, norm_search = self._extract_lines(
+        # Extract both original and normalized versions using the utility function
+        search_text, norm_search = extract_and_normalize_text(
             lines, start_idx + 1, divider_idx)
-        replace_text, norm_replace = self._extract_lines(
+        replace_text, norm_replace = extract_and_normalize_text(
             lines, divider_idx + 1, tail_idx)
 
         # Build raw command (preserve original line endings)
@@ -398,7 +305,7 @@ class ResponseParser:
             raise ValueError("Line ending normalization failed")
 
         # Validate markers in raw command
-        lines = self.normalize_line_endings(block.raw_command).splitlines()
+        lines = normalize_line_endings(block.raw_command).splitlines()
         found_markers = {
             'head': False,
             'divider': False,

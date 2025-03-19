@@ -256,10 +256,13 @@ class FileEditor:
         Returns:
             Modified content or None if search text not found
         """
+        # Import here to avoid circular imports
+        from utils.normalization import normalize_line_endings
+
         # Normalize line endings
-        content = content.replace('\r\n', '\n')
-        search_text = search_text.replace('\r\n', '\n')
-        replace_text = replace_text.replace('\r\n', '\n')
+        content = normalize_line_endings(content)
+        search_text = normalize_line_endings(search_text)
+        replace_text = normalize_line_endings(replace_text)
 
         # Handle special case for entire file operations
         if search_text.strip() == "#ENTIRE_FILE":
