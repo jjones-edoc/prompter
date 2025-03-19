@@ -663,6 +663,9 @@ Important:
             for file in filtered_files:
                 prompt += f"File: {file['file_path']}\n"
 
+                # Add token count
+                prompt += f"Token Count: {file.get('token_count', 0)}\n"
+
                 # Add summary
                 prompt += f"Summary: {file['summary']}\n"
 
@@ -683,11 +686,19 @@ Important:
                 prompt += "\n"
 
             prompt += "INSTRUCTIONS:\n"
-            prompt += "1. Analyze the user query and determine what files would be most relevant to include.\n"
-            prompt += "2. List ONLY the file paths, one per line, with no additional commentary or explanations.\n"
-            prompt += "3. Include only files that are directly relevant to the query.\n"
-            prompt += "4. Don't list files that aren't in the AVAILABLE FILES section.\n\n"
-            prompt += "SELECTED FILES:"
+            prompt += "Analyze the user query and the available files to select the most relevant files that would address the query. Structure your response in the following format:\n\n"
+
+            prompt += "# Thoughts\n"
+            prompt += "Think about which files are most relevant to the user's query based on their descriptions, structures, and token counts. Consider what functionality needs to be included to address the query effectively.\n\n"
+
+            prompt += "# Dependency Considerations\n"
+            prompt += "Analyze dependencies between files. If you select a file, consider whether its dependencies should also be included. Identify any potential dependency chains necessary for the functionality requested.\n\n"
+
+            prompt += "# Selected Files\n"
+            prompt += "List the file paths you've selected, one per line. Include only files from the AVAILABLE FILES section that are either:\n"
+            prompt += "- Directly relevant to implementing the requested functionality\n"
+            prompt += "- Dependencies required by selected files\n"
+            prompt += "- Core utilities or helpers needed to understand the system's architecture\n\n"
 
             return jsonify({
                 'success': True,
