@@ -24,6 +24,48 @@
   padding-bottom: 0.5rem !important;
 }
 
+/* Selection method cards */
+.selection-card {
+  transition: all 0.2s ease-in-out;
+  border-color: var(--bs-border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.selection-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  border-color: rgba(var(--bs-primary-rgb), 0.5);
+}
+
+.selection-card .fa-3x {
+  margin-bottom: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.selection-card:hover .fa-3x {
+  transform: scale(1.1);
+}
+
+/* AI Selection Modal styling */
+#ai-prompt, #ai-response {
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+#ai-prompt {
+  background-color: rgba(var(--bs-light-rgb), 0.7);
+  border-color: var(--bs-border-color);
+}
+
+.modal-xl {
+  max-width: 90%;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
 /* Card header buttons */
 .card-header .btn {
   padding: 0.4rem 0.8rem;

@@ -1,5 +1,5 @@
 import os
-from flask import request, jsonify
+from flask import request, jsonify, session, url_for
 
 
 def register_api_routes(app, scanner):
@@ -172,14 +172,14 @@ def register_api_routes(app, scanner):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/search_files', methods=['POST'])
     def search_files():
         """Search for files containing the specified text"""
         search_query = request.form.get('search_query', '')
         if not search_query:
             return jsonify({'error': 'No search query provided'}), 400
-            
+
         try:
             matching_files = scanner.search_files(search_query)
             return jsonify({
@@ -188,27 +188,27 @@ def register_api_routes(app, scanner):
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/process_claude_response', methods=['POST'])
     def process_claude_response():
         """Process the response pasted from Claude"""
         claude_response = request.form.get('claude_response', '')
         if not claude_response:
             return jsonify({'error': 'No response provided'}), 400
-            
+
         try:
             # Import our processor (using relative import based on project structure)
             from utils.response_processor import ClaudeResponseProcessor
-            
+
             # Get the root directory from app config
             root_dir = app.config['PROMPTER_DIRECTORY']
-            
+
             # Initialize the processor with the root directory
             processor = ClaudeResponseProcessor(root_dir)
-            
+
             # Process the response
             results = processor.process_response(claude_response)
-            
+
             # Build response based on processing results
             response = {
                 'success': results['success_count'] > 0,
@@ -217,17 +217,19 @@ def register_api_routes(app, scanner):
                 'error_count': results['error_count'],
                 'errors': results['errors']
             }
-            
+
             # Add a summary message
             if results['error_count'] == 0:
-                response['message'] = f"Successfully edited {results['success_count']} file(s)"
+                response[
+                    'message'] = f"Successfully edited {results['success_count']} file(s)"
             else:
-                response['message'] = f"Processed with {results['success_count']} successful edit(s) and {results['error_count']} error(s)"
-            
+                response[
+                    'message'] = f"Processed with {results['success_count']} successful edit(s) and {results['error_count']} error(s)"
+
             return jsonify(response)
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/count_unsummarized_files', methods=['GET'])
     def count_unsummarized_files():
         """Get the count of repository files without summaries"""
@@ -235,19 +237,19 @@ def register_api_routes(app, scanner):
             # Create a temporary database connection to query the count
             from utils.database import Database
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
-            
+
             # Get the count of files without summaries
             count = db.count_files_without_summary()
-            
+
             # Close the database connection
             db.close()
-            
+
             return jsonify({
                 'count': count
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/get_next_unsummarized_file', methods=['GET'])
     def get_next_unsummarized_file():
         """Get the next file without a summary"""
@@ -256,32 +258,33 @@ def register_api_routes(app, scanner):
             from utils.database import Database
             from utils.repository_file import RepositoryFile
             from utils.file_summarizer import generate_summary_prompt
-            
+
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
-            
+
             # Get the count of files without summaries first
             unsummarized_count = db.count_files_without_summary()
-            
+
             # Log the count for debugging
             app.logger.info(f"Unsummarized files count: {unsummarized_count}")
-            
+
             if unsummarized_count == 0:
                 db.close()
                 return jsonify({'message': 'No unsummarized files found'}), 200
-            
+
             # Get the next file without a summary
             file_data = repo_file.get_next_unsummarized_file()
-            
+
             # Close the database connection
             db.close()
-            
+
             if file_data:
                 # Get the file contents
                 file_path = file_data['file_path']
-                abs_path = os.path.join(app.config['PROMPTER_DIRECTORY'], file_path)
-                
+                abs_path = os.path.join(
+                    app.config['PROMPTER_DIRECTORY'], file_path)
+
                 # Make sure the file exists
                 if os.path.isfile(abs_path):
                     try:
@@ -291,11 +294,11 @@ def register_api_routes(app, scanner):
                         # Try another encoding if UTF-8 fails
                         with open(abs_path, 'r', encoding='latin-1') as f:
                             file_content = f.read()
-                    
+
                     # Get the language type
                     from utils.helpers import get_language_type
                     language_type = get_language_type(file_path)
-                    
+
                     # Generate the prompt with repository structure
                     prompt = generate_summary_prompt(
                         file_path=file_path,
@@ -303,7 +306,7 @@ def register_api_routes(app, scanner):
                         language_type=language_type,
                         scanner=scanner
                     )
-                    
+
                     return jsonify({
                         'file_path': file_path,
                         'token_count': file_data['token_count'],
@@ -315,9 +318,11 @@ def register_api_routes(app, scanner):
                     # File exists in DB but not on disk
                     app.logger.warning(f"File not found on disk: {file_path}")
                     # Skip this file in the DB by marking it as processed with a special flag
-                    db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+                    db = Database(
+                        app_directory=app.config['PROMPTER_DIRECTORY'])
                     repo_file = RepositoryFile(db)
-                    repo_file.update_file_summary(file_path=file_path, summary="[File not found on disk - skipped]")
+                    repo_file.update_file_summary(
+                        file_path=file_path, summary="[File not found on disk - skipped]")
                     db.close()
                     # Try to get the next file instead
                     return get_next_unsummarized_file()
@@ -326,30 +331,31 @@ def register_api_routes(app, scanner):
         except Exception as e:
             app.logger.error(f"Error in get_next_unsummarized_file: {str(e)}")
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/get_multiple_unsummarized_files', methods=['GET'])
     def get_multiple_unsummarized_files():
         """Get multiple files without summaries, up to a token limit"""
         try:
             # Get token limit from request, default to 50000
             token_limit = request.args.get('token_limit', 50000, type=int)
-            
+
             # Import repository file class and file summarizer
             from utils.database import Database
             from utils.repository_file import RepositoryFile
             from utils.file_summarizer import generate_summary_prompt
             from utils.helpers import get_language_type
-            
+
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
-            
+
             # Get the count of files without summaries first
             unsummarized_count = db.count_files_without_summary()
-            
+
             # Log the count for debugging
-            app.logger.info(f"Unsummarized files count for multi-file: {unsummarized_count}")
-            
+            app.logger.info(
+                f"Unsummarized files count for multi-file: {unsummarized_count}")
+
             if unsummarized_count == 0:
                 db.close()
                 return jsonify({
@@ -358,13 +364,13 @@ def register_api_routes(app, scanner):
                     'total_tokens': 0,
                     'file_count': 0
                 }), 200
-            
+
             # Get multiple files without summaries
             files_data = repo_file.get_multiple_unsummarized_files(token_limit)
-            
+
             # Close the database connection
             db.close()
-            
+
             if not files_data:
                 return jsonify({
                     'message': 'No unsummarized files found',
@@ -372,15 +378,16 @@ def register_api_routes(app, scanner):
                     'total_tokens': 0,
                     'file_count': 0
                 }), 200
-                
+
             # Process each file to add content and language type
             processed_files = []
             skipped_files = []
-            
+
             for file_data in files_data:
                 file_path = file_data['file_path']
-                abs_path = os.path.join(app.config['PROMPTER_DIRECTORY'], file_path)
-                
+                abs_path = os.path.join(
+                    app.config['PROMPTER_DIRECTORY'], file_path)
+
                 # Make sure the file exists
                 if os.path.isfile(abs_path):
                     try:
@@ -393,13 +400,14 @@ def register_api_routes(app, scanner):
                                 file_content = f.read()
                         except Exception as e:
                             # Skip this file and log the error
-                            app.logger.error(f"Error reading file {file_path}: {str(e)}")
+                            app.logger.error(
+                                f"Error reading file {file_path}: {str(e)}")
                             skipped_files.append(file_path)
                             continue
-                    
+
                     # Get the language type
                     language_type = get_language_type(file_path)
-                    
+
                     # Add to processed files
                     processed_files.append({
                         'file_path': file_path,
@@ -410,17 +418,19 @@ def register_api_routes(app, scanner):
                 else:
                     # File exists in DB but not on disk - mark it for skipping
                     skipped_files.append(file_path)
-            
+
             # Skip files that don't exist on disk
             if skipped_files:
-                app.logger.warning(f"Files not found on disk: {', '.join(skipped_files)}")
+                app.logger.warning(
+                    f"Files not found on disk: {', '.join(skipped_files)}")
                 # Mark these files as processed with a special flag
                 db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
                 repo_file = RepositoryFile(db)
                 for file_path in skipped_files:
-                    repo_file.update_file_summary(file_path=file_path, summary="[File not found on disk - skipped]")
+                    repo_file.update_file_summary(
+                        file_path=file_path, summary="[File not found on disk - skipped]")
                 db.close()
-            
+
             # If no valid files were processed, return appropriate response
             if not processed_files:
                 return jsonify({
@@ -429,14 +439,14 @@ def register_api_routes(app, scanner):
                     'total_tokens': 0,
                     'file_count': 0
                 }), 200
-            
+
             # Generate a combined prompt
             combined_prompt = "Please analyze the following files and extract key information about their structure and purpose.\n\n"
-            
+
             for file in processed_files:
                 combined_prompt += f"File: {file['file_path']}\n\n"
                 combined_prompt += f"```{file['language_type']}\n{file['content']}\n```\n\n"
-            
+
             combined_prompt += """
 For each file, extract and parse the content into the following format:
 
@@ -461,10 +471,10 @@ Important:
 5. Create a <FILE> section for EACH file in the prompt
 6. Don't add any explanation or notes outside the XML structure
 """
-            
+
             # Calculate total token count
             total_tokens = sum(file['token_count'] for file in processed_files)
-                
+
             return jsonify({
                 'files': processed_files,
                 'total_tokens': total_tokens,
@@ -472,9 +482,10 @@ Important:
                 'file_count': len(processed_files)
             })
         except Exception as e:
-            app.logger.error(f"Error in get_multiple_unsummarized_files: {str(e)}")
+            app.logger.error(
+                f"Error in get_multiple_unsummarized_files: {str(e)}")
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/update_file_summary', methods=['POST'])
     def update_file_summary():
         """Update a file's summary, tree, and dependencies"""
@@ -484,23 +495,23 @@ Important:
             summary = request.form.get('summary')
             tree = request.form.get('tree')
             dependencies = request.form.get('dependencies')
-            
+
             # Validate required fields
             if not file_path or not summary:
                 return jsonify({'error': 'File path and summary are required'}), 400
-                
+
             # Process tree and dependencies if provided
             tree_list = tree.splitlines() if tree else None
             dependencies_list = dependencies.splitlines() if dependencies else None
-            
+
             # Import repository file class
             from utils.database import Database
             from utils.repository_file import RepositoryFile
-            
+
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
-            
+
             # Update the file summary
             success = repo_file.update_file_summary(
                 file_path=file_path,
@@ -508,16 +519,16 @@ Important:
                 tree=tree_list,
                 dependencies=dependencies_list
             )
-            
+
             # Close the database connection
             db.close()
-            
+
             if success:
                 # Get the updated count of unsummarized files
                 db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
                 remaining_count = db.count_files_without_summary()
                 db.close()
-                
+
                 return jsonify({
                     'success': True,
                     'message': 'File summary updated successfully',
@@ -527,36 +538,37 @@ Important:
                 return jsonify({'error': 'File not found in database'}), 404
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/update_multiple_file_summaries', methods=['POST'])
     def update_multiple_file_summaries():
         """Update summaries for multiple files"""
         try:
             # Get request data as JSON
             request_data = request.json
-            
+
             if not request_data or not isinstance(request_data, list):
                 return jsonify({'error': 'Invalid request format. Expected a list of file summary objects'}), 400
-                
+
             # Import repository file class
             from utils.database import Database
             from utils.repository_file import RepositoryFile
-            
+
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
-            
+
             # Update multiple file summaries
-            success_count, errors = repo_file.update_multiple_file_summaries(request_data)
-            
+            success_count, errors = repo_file.update_multiple_file_summaries(
+                request_data)
+
             # Close the database connection
             db.close()
-            
+
             # Get the updated count of unsummarized files
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             remaining_count = db.count_files_without_summary()
             db.close()
-            
+
             return jsonify({
                 'success': success_count > 0,
                 'message': f'Updated {success_count} file(s) successfully',
@@ -567,41 +579,41 @@ Important:
             })
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-            
+
     @app.route('/api/skip_file', methods=['POST'])
     def skip_file():
         """Skip a file by marking it with an empty summary"""
         try:
             # Get request data
             file_path = request.form.get('file_path')
-            
+
             # Validate required fields
             if not file_path:
                 return jsonify({'error': 'File path is required'}), 400
-                
+
             # Import repository file class
             from utils.database import Database
             from utils.repository_file import RepositoryFile
-            
+
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
             repo_file = RepositoryFile(db)
-            
+
             # Update with an empty summary to mark as processed but skipped
             success = repo_file.update_file_summary(
                 file_path=file_path,
                 summary="[Skipped]"
             )
-            
+
             # Close the database connection
             db.close()
-            
+
             if success:
                 # Get the updated count of unsummarized files
                 db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
                 remaining_count = db.count_files_without_summary()
                 db.close()
-                
+
                 return jsonify({
                     'success': True,
                     'message': 'File skipped successfully',
@@ -610,4 +622,128 @@ Important:
             else:
                 return jsonify({'error': 'File not found in database'}), 404
         except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/get_ai_selection_prompt', methods=['GET'])
+    def get_ai_selection_prompt():
+        """Generate prompt for AI selection helper"""
+        try:
+            # Get the user prompt from session
+            user_prompt = session.get('user_prompt', '')
+            if not user_prompt:
+                return jsonify({'error': 'No prompt found in session'}), 400
+
+            # Get all repository files with their metadata
+            from utils.database import Database
+            from utils.repository_file import RepositoryFile
+
+            db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+            repo_file = RepositoryFile(db)
+
+            # Get all files from the repository with metadata
+            files = repo_file.get_all()
+
+            # Close the database connection
+            db.close()
+
+            # Build the prompt
+            prompt = "Based on the user's query, select the most relevant files from the codebase that would help address the query.\n\n"
+            prompt += "USER QUERY:\n"
+            prompt += f"{user_prompt}\n\n"
+
+            prompt += "AVAILABLE FILES:\n"
+            for file in files:
+                prompt += f"File: {file['file_path']}\n"
+
+                # Add summary if available
+                if file.get('summary') and file['summary'].strip() and '[Skipped]' not in file['summary']:
+                    prompt += f"Summary: {file['summary']}\n"
+
+                # Add code structure if available
+                if file.get('code_data') and isinstance(file['code_data'], dict) and file['code_data'].get('tree'):
+                    tree = file['code_data']['tree']
+                    if tree and len(tree) > 0:
+                        prompt += "Structure: "
+                        prompt += ", ".join(tree)
+                        prompt += "\n"
+
+                # Add dependencies if available
+                if file.get('dependencies') and isinstance(file['dependencies'], list) and len(file['dependencies']) > 0:
+                    prompt += "Dependencies: "
+                    prompt += ", ".join(file['dependencies'])
+                    prompt += "\n"
+
+                prompt += "\n"
+
+            prompt += "INSTRUCTIONS:\n"
+            prompt += "1. Analyze the user query and determine what files would be most relevant to include.\n"
+            prompt += "2. List ONLY the file paths, one per line, with no additional commentary or explanations.\n"
+            prompt += "3. Include only files that are directly relevant to the query.\n"
+            prompt += "4. Don't list files that aren't in the AVAILABLE FILES section.\n\n"
+            prompt += "SELECTED FILES:"
+
+            return jsonify({
+                'success': True,
+                'prompt': prompt
+            })
+        except Exception as e:
+            app.logger.error(f"Error generating AI selection prompt: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/process_ai_selection', methods=['POST'])
+    def process_ai_selection():
+        """Process the AI selection response and save to session"""
+        try:
+            # Get the AI response
+            ai_response = request.form.get('ai_response', '')
+            if not ai_response.strip():
+                return jsonify({'error': 'AI response is empty'}), 400
+
+            # Parse the response to extract file paths
+            # Split by newlines and trim whitespace
+            file_paths = [line.strip()
+                          for line in ai_response.splitlines() if line.strip()]
+
+            # Remove any empty lines
+            file_paths = [path for path in file_paths if path]
+
+            # Store in session
+            session['preselected_files'] = file_paths
+
+            return jsonify({
+                'success': True,
+                'file_count': len(file_paths),
+                'files': file_paths,
+                'redirect_url': url_for('select_files')
+            })
+        except Exception as e:
+            app.logger.error(f"Error processing AI selection: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/get_preselected_files', methods=['GET'])
+    def get_preselected_files():
+        """Get preselected files from session"""
+        try:
+            preselected_files = session.get('preselected_files', [])
+
+            return jsonify({
+                'success': True,
+                'files': preselected_files
+            })
+        except Exception as e:
+            app.logger.error(f"Error getting preselected files: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/clear_preselected_files', methods=['GET'])
+    def clear_preselected_files():
+        """Clear preselected files from session"""
+        try:
+            if 'preselected_files' in session:
+                session.pop('preselected_files')
+
+            return jsonify({
+                'success': True
+            })
+        except Exception as e:
+            app.logger.error(f"Error clearing preselected files: {str(e)}")
             return jsonify({'error': str(e)}), 500

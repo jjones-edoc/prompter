@@ -20,9 +20,9 @@ def register_main_routes(app, scanner):
 
         return render_template('prompt.html')
 
-    @app.route('/select_files', methods=['POST'])
-    def select_files():
-        """Handle the prompt input and show file selection screen"""
+    @app.route('/selection_method', methods=['POST'])
+    def selection_method():
+        """Handle the prompt input and show the selection method screen"""
         user_prompt = request.form.get('prompt', '')
         include_coding_prompt = 'include_coding_prompt' in request.form
 
@@ -34,6 +34,16 @@ def register_main_routes(app, scanner):
         if not user_prompt.strip():
             return redirect(url_for('index'))
 
+        return render_template('selection_method.html')
+
+    @app.route('/select_files', methods=['POST', 'GET'])
+    def select_files():
+        """Display the file selection screen"""
+        # If this is a GET request, check if we have prompt data in session
+        if request.method == 'GET':
+            if 'user_prompt' not in session:
+                return redirect(url_for('index'))
+
         # Get the current path from the query string (default to root)
         current_path = request.args.get('path', '')
 
@@ -41,9 +51,13 @@ def register_main_routes(app, scanner):
         items = scanner.get_items(current_path)
         parent_path = items['parent_path']
 
+        # Get any preselected files from the AI helper
+        preselected_files = session.get('preselected_files', [])
+
         return render_template('index.html',
                                current_path=current_path,
-                               parent_path=parent_path)
+                               parent_path=parent_path,
+                               preselected_files=preselected_files)
 
     @app.route('/generate', methods=['GET', 'POST'])
     def generate():
