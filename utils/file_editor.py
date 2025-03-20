@@ -257,7 +257,7 @@ class FileEditor:
             Modified content or None if search text not found
         """
         # Import here to avoid circular imports
-        from utils.normalization import normalize_line_endings
+        from features.file_modification.normalization import normalize_line_endings
 
         # Normalize line endings
         content = normalize_line_endings(content)

@@ -2,7 +2,7 @@ import re
 from typing import List, Optional, Tuple, Dict
 from pathlib import Path
 from features.file_modification.models import EditBlock, MoveOperation, ParseResult
-from utils.normalization import (
+from features.file_modification.normalization import (
     normalize_line_endings,
     extract_and_normalize_text,
     normalize_marker,
