@@ -17,7 +17,7 @@ def register_file_modification_routes(app, scanner):
             return jsonify({'error': 'No response provided'}), 400
 
         try:
-            # Import our processor (using relative import based on project structure)
+            # Import our processor
             from utils.response_processor import ClaudeResponseProcessor
 
             # Get the root directory from app config

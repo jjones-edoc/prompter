@@ -3,7 +3,6 @@ from flask import Flask
 from routes.main_routes import register_main_routes
 from routes.navigation_routes import register_navigation_routes
 from routes.search_routes import register_search_routes
-from routes.file_modification_routes import register_file_modification_routes
 from utils.scanner import Scanner
 from utils.database import Database
 from utils.repository_updater import RepositoryUpdater
@@ -11,6 +10,7 @@ from utils.repository_updater import RepositoryUpdater
 # Import from new feature-based structure
 from features.ai_assistance.routes import register_ai_assistance_routes
 from features.summarizer.routes import register_summarizer_routes
+from features.file_modification.routes import register_file_modification_routes
 
 
 def create_app(directory: str, scan_on_startup: bool = True):
@@ -43,7 +43,7 @@ def create_app(directory: str, scan_on_startup: bool = True):
     register_search_routes(app, scanner)
     register_ai_assistance_routes(app, scanner)  # Coming from features/ai_assistance
     register_summarizer_routes(app, scanner)  # Coming from features/summarizer
-    register_file_modification_routes(app, scanner)
+    register_file_modification_routes(app, scanner)  # Coming from features/file_modification
 
     return app
 
