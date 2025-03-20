@@ -1,6 +1,5 @@
 import os
 from flask import Flask
-from routes.search_routes import register_search_routes
 from utils.scanner import Scanner
 from utils.database import Database
 from utils.repository_updater import RepositoryUpdater
@@ -37,13 +36,11 @@ def create_app(directory: str, scan_on_startup: bool = True):
                         f"{stats['deleted']} deleted, "
                         f"{stats['skipped']} skipped, {stats['errors']} errors")
 
-    # Register route blueprints
-    register_prompt_generation_routes(app, scanner)  # Coming from features/prompt_generation
+    register_prompt_generation_routes(app, scanner)
     register_navigation_routes(app, scanner)  # Coming from features/navigation
-    register_search_routes(app, scanner)
-    register_ai_assistance_routes(app, scanner)  # Coming from features/ai_assistance
+    register_ai_assistance_routes(app, scanner)
     register_summarizer_routes(app, scanner)  # Coming from features/summarizer
-    register_file_modification_routes(app, scanner)  # Coming from features/file_modification
+    register_file_modification_routes(app, scanner)
 
     return app
 
