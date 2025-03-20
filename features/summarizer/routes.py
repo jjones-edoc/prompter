@@ -1,5 +1,9 @@
 from flask import request, jsonify, current_app
 import os
+from typing import Dict, List, Any, Optional
+
+# Import from the local helpers module
+from features.summarizer.helpers import generate_summary_prompt, parse_ai_response
 
 
 def register_summarizer_routes(app, scanner):
@@ -37,7 +41,6 @@ def register_summarizer_routes(app, scanner):
             # Import repository file class and file summarizer
             from utils.database import Database
             from utils.repository_file import RepositoryFile
-            from utils.file_summarizer import generate_summary_prompt
 
             # Create database connection
             db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
@@ -125,7 +128,6 @@ def register_summarizer_routes(app, scanner):
             # Import repository file class and file summarizer
             from utils.database import Database
             from utils.repository_file import RepositoryFile
-            from utils.file_summarizer import generate_summary_prompt
             from utils.helpers import get_language_type
 
             # Create database connection
