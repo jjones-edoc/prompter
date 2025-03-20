@@ -1,6 +1,6 @@
 from flask import render_template, request, session, redirect, url_for
 from utils.helpers import get_language_type
-from utils.edit_code_prompt import edit_code_prompt
+from features.prompt_generation.edit_code_prompt import edit_code_prompt
 from features.prompt_generation.helpers import _collect_files_recursive
 
 
