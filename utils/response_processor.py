@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Tuple, Dict, List, Optional
 
 from features.file_modification.models import EditBlock, MoveOperation
-from utils.response_parser import ResponseParser
+from features.file_modification.response_parser import ResponseParser
 from utils.file_editor import FileEditor
 
 
