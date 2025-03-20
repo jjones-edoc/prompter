@@ -1,4 +1,4 @@
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, render_template
 import os
 from typing import Dict, List, Any, Optional
 
@@ -117,6 +117,31 @@ def register_summarizer_routes(app, scanner):
             current_app.logger.error(
                 f"Error in get_next_unsummarized_file: {str(e)}")
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/unfamiliar', methods=['GET'])
+    def unfamiliar_files():
+        """Show the unfamiliar files page for processing files without summaries"""
+        # Create a temporary database connection to get stats
+        from utils.database import Database
+        from utils.repository_file import RepositoryFile
+
+        db = Database(app_directory=app.config['PROMPTER_DIRECTORY'])
+        repo_file = RepositoryFile(db)
+
+        # Get count of files without summaries
+        unsummarized_count = db.count_files_without_summary()
+
+        # Get the first unsummarized file if available
+        next_file = None
+        if unsummarized_count > 0:
+            next_file = repo_file.get_next_unsummarized_file()
+
+        # Close the database connection
+        db.close()
+
+        return render_template('unfamiliar.html',
+                               unsummarized_count=unsummarized_count,
+                               next_file=next_file)
 
     @app.route('/api/get_multiple_unsummarized_files', methods=['GET'])
     def get_multiple_unsummarized_files():
