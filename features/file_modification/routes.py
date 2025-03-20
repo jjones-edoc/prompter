@@ -18,7 +18,7 @@ def register_file_modification_routes(app, scanner):
 
         try:
             # Import our processor
-            from utils.response_processor import ClaudeResponseProcessor
+            from features.file_modification.response_processor import ClaudeResponseProcessor
 
             # Get the root directory from app config
             root_dir = app.config['PROMPTER_DIRECTORY']
