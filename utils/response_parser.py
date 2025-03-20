@@ -1,7 +1,7 @@
 import re
 from typing import List, Optional, Tuple, Dict
 from pathlib import Path
-from utils.models import EditBlock, MoveOperation, ParseResult
+from features.file_modification.models import EditBlock, MoveOperation, ParseResult
 from utils.normalization import (
     normalize_line_endings,
     extract_and_normalize_text,
