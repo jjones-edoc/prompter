@@ -1,11 +1,12 @@
-from flask import render_template, request, session, redirect, url_for, Blueprint
+from flask import render_template, request, session, redirect, url_for
 from utils.helpers import get_language_type
 from utils.edit_code_prompt import edit_code_prompt
+from features.prompt_generation.helpers import _collect_files_recursive
 
 
-def register_main_routes(app, scanner):
+def register_prompt_generation_routes(app, scanner):
     """
-    Register all main application routes.
+    Register routes related to prompt generation from selected files.
 
     Args:
         app: Flask application instance
@@ -105,20 +106,3 @@ def register_main_routes(app, scanner):
         combined_content += f"### User Query:\n\n{user_prompt}"
 
         return render_template('generated.html', combined_content=combined_content)
-
-
-def _collect_files_recursive(scanner, path, file_list):
-    """
-    Helper function to collect files recursively from a directory.
-
-    Args:
-        scanner: Scanner instance
-        path: Path to collect files from
-        file_list: List to append files to
-    """
-    items = scanner.get_items(path)
-    # Add files in this directory
-    file_list.extend([f['path'] for f in items['files']])
-    # Recursively process subdirectories
-    for dir_info in items['dirs']:
-        _collect_files_recursive(scanner, dir_info['path'], file_list)
