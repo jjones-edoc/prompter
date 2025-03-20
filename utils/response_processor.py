@@ -4,7 +4,7 @@ from typing import Tuple, Dict, List, Optional
 
 from features.file_modification.models import EditBlock, MoveOperation
 from features.file_modification.response_parser import ResponseParser
-from utils.file_editor import FileEditor
+from features.file_modification.file_editor import FileEditor
 
 
 class ClaudeResponseProcessor:
