@@ -35,11 +35,22 @@
         </div>
         <div class="card-body">
           <form action="{{ url_for('selection_method') }}" method="POST">
-            <div class="mb-2">
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="include_coding_prompt" name="include_coding_prompt" />
-                <label class="form-check-label" for="include_coding_prompt"> Include Coding Prompt </label>
-                <small class="form-text text-muted d-block">Adds expert code editing instructions before your prompt</small>
+            <div class="mb-3">
+              <div class="row">
+                <div class="col-12 col-md-6 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include_coding_prompt" name="include_coding_prompt" />
+                    <label class="form-check-label" for="include_coding_prompt"> Include Coding Prompt </label>
+                    <small class="form-text text-muted d-block">Adds expert code editing instructions before your prompt</small>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include_directory_structure" name="include_directory_structure" />
+                    <label class="form-check-label" for="include_directory_structure"> Include Directory Structure </label>
+                    <small class="form-text text-muted d-block">Adds project directory/file structure to provide context</small>
+                  </div>
+                </div>
               </div>
             </div>
 

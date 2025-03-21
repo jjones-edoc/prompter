@@ -1,7 +1,7 @@
 from flask import render_template, request, session, redirect, url_for
 from utils.helpers import get_language_type
 from features.prompt_generation.edit_code_prompt import edit_code_prompt
-from features.prompt_generation.helpers import _collect_files_recursive
+from features.prompt_generation.helpers import _collect_files_recursive, generate_directory_structure
 
 
 def register_prompt_generation_routes(app, scanner):
@@ -30,6 +30,7 @@ def register_prompt_generation_routes(app, scanner):
         # Store prompt data in session
         session['user_prompt'] = user_prompt
         session['include_coding_prompt'] = include_coding_prompt
+        session['include_directory_structure'] = 'include_directory_structure' in request.form
 
         # If prompt is empty, go back to index
         if not user_prompt.strip():
@@ -73,6 +74,7 @@ def register_prompt_generation_routes(app, scanner):
         # Get stored prompt data from session
         user_prompt = session.get('user_prompt', '')
         include_coding_prompt = session.get('include_coding_prompt', False)
+        include_directory_structure = session.get('include_directory_structure', False)
 
         # Process folders to get all files within them
         folder_files = []
@@ -93,6 +95,12 @@ def register_prompt_generation_routes(app, scanner):
         # Add coding prompt if checkbox was selected
         if include_coding_prompt:
             combined_content += edit_code_prompt() + "\n\n"
+
+        # Add directory structure if checkbox was selected
+        if include_directory_structure:
+            combined_content += "### Project Structure:\n\n```\n"
+            combined_content += generate_directory_structure(scanner, max_depth=5)
+            combined_content += "\n```\n\n"
 
         combined_content += "### List of files:\n\n"
         # Read and add file contents with the new format
