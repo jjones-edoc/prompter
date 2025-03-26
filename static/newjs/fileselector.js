@@ -23,65 +23,65 @@ const FileSelector = (function () {
     tokenCount = state.tokenCount || 0;
 
     return `
-        <div class="card shadow-sm mb-4">
-          <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">Select Files for Your Prompt</h2>
-            <div class="token-counter">
-              <span class="badge bg-info text-dark fs-6">
-                <i class="fas fa-calculator me-1"></i> Total Tokens: <span id="total-tokens">0</span>
-              </span>
-            </div>
-          </div>
-          <div class="card-body pb-0">
-            <!-- Search box -->
-            <div class="input-group mb-3">
-              <span class="input-group-text"><i class="fas fa-search"></i></span>
-              <input type="text" class="form-control" id="search-input" placeholder="Search files by content..." aria-label="Search files">
-              <button class="btn btn-outline-secondary" type="button" id="search-button">Search</button>
-            </div>
-            <div id="search-results" class="mb-3 d-none">
-              <div class="alert alert-info d-flex align-items-center">
-                <div class="me-auto" id="search-stats"></div>
-                <button class="btn btn-sm btn-outline-primary" id="select-found-files">Select All Found Files</button>
-                <button class="btn btn-sm btn-outline-secondary ms-2" id="clear-search">Clear</button>
+          <div class="card shadow-sm mb-4">
+            <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
+              <h2 class="h4 mb-0">Select Files for Your Prompt</h2>
+              <div class="token-counter">
+                <span class="badge bg-info text-dark fs-6">
+                  <i class="fas fa-calculator me-1"></i> Total Tokens: <span id="total-tokens">0</span>
+                </span>
               </div>
             </div>
-          </div>
-          <div class="card-body p-0"> <!-- Removed padding for better control -->
-            <form id="file-selection-form">
-              <!-- Action buttons - sticky header -->
-              <div class="sticky-header">
-                <div class="d-flex justify-content-between p-3 bg-body border-bottom">
-                  <button type="button" id="back-button" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i> Back
-                  </button>
-                  <div>
-                    <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm">
-                      <i class="fas fa-check-square me-1"></i> Select All
+            <div class="card-body pb-0">
+              <!-- Search box -->
+              <div class="input-group mb-3">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="search-input" placeholder="Search files by content..." aria-label="Search files">
+                <button class="btn btn-outline-secondary" type="button" id="search-button">Search</button>
+              </div>
+              <div id="search-results" class="mb-3 d-none">
+                <div class="alert alert-info d-flex align-items-center">
+                  <div class="me-auto" id="search-stats"></div>
+                  <button class="btn btn-sm btn-outline-primary" id="select-found-files">Select All Found Files</button>
+                  <button class="btn btn-sm btn-outline-secondary ms-2" id="clear-search">Clear</button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-0"> <!-- Removed padding for better control -->
+              <form id="file-selection-form">
+                <!-- Action buttons - sticky header -->
+                <div class="sticky-header">
+                  <div class="d-flex justify-content-between p-3 bg-body border-bottom">
+                    <button type="button" id="back-button" class="btn btn-outline-secondary btn-sm">
+                      <i class="fas fa-arrow-left me-1"></i> Back
                     </button>
-                    <button type="submit" class="btn btn-primary btn-sm" id="next-button">
-                      <i class="fas fa-wand-magic-sparkles me-1"></i> Generate
-                    </button>
+                    <div>
+                      <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-check-square me-1"></i> Select All
+                      </button>
+                      <button type="submit" class="btn btn-primary btn-sm" id="next-button">
+                        <i class="fas fa-wand-magic-sparkles me-1"></i> Generate
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div class="file-explorer scrollable-container">
-                <!-- Tree view for folders and files -->
-                <div class="tree-view">
-                  <ul class="tree-root list-unstyled" id="root-folder-contents">
-                    ${
-                      treeData
-                        ? renderTree(treeData)
-                        : '<li class="py-2 text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading files and folders...</li>'
-                    }
-                  </ul>
+                
+                <div class="file-explorer scrollable-container">
+                  <!-- Tree view for folders and files -->
+                  <div class="tree-view">
+                    <ul class="tree-root list-unstyled" id="root-folder-contents">
+                      ${
+                        treeData
+                          ? renderTree(treeData)
+                          : '<li class="py-2 text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Loading files and folders...</li>'
+                      }
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      `;
+        `;
   }
 
   /**
@@ -99,33 +99,33 @@ const FileSelector = (function () {
         const isSelected = selectedFolders.includes(dir.path);
 
         html += `
-            <li class="tree-item folder-item ${isSelected ? "selected-folder" : ""}">
-              <div class="d-flex align-items-center p-2 border-bottom">
-                <div class="me-2">
-                  <input type="checkbox" class="form-check-input folder-checkbox" 
-                    data-folder-path="${dir.path}" ${isSelected ? "checked" : ""} />
+              <li class="tree-item folder-item ${isSelected ? "selected-folder" : ""}">
+                <div class="d-flex align-items-center p-2 border-bottom">
+                  <div class="me-2">
+                    <input type="checkbox" class="form-check-input folder-checkbox" 
+                      data-folder-path="${dir.path}" ${isSelected ? "checked" : ""} />
+                  </div>
+                  <div class="me-2 toggle-icon" data-bs-toggle="collapse" data-bs-target="#${subfolderId}">
+                    <i class="fas fa-caret-down fa-fw"></i>
+                  </div>
+                  <div class="me-2">
+                    <i class="fas fa-folder fa-fw text-warning"></i>
+                  </div>
+                  <div class="folder-name">
+                    <span class="cursor-pointer" data-bs-toggle="collapse" data-bs-target="#${subfolderId}">${dir.name}</span>
+                  </div>
+                  <div class="ms-auto folder-token-count">
+                    <span class="badge bg-light text-secondary token-badge" 
+                      data-folder-tokens="${dir.token_count || 0}">${dir.token_count || 0} tokens</span>
+                  </div>
                 </div>
-                <div class="me-2 toggle-icon" data-bs-toggle="collapse" data-bs-target="#${subfolderId}">
-                  <i class="fas fa-caret-down fa-fw"></i>
+                <div class="collapse show" id="${subfolderId}">
+                  <ul class="list-unstyled ms-4 folder-contents" data-folder-path="${dir.path}">
+                    ${renderTree(dir)}
+                  </ul>
                 </div>
-                <div class="me-2">
-                  <i class="fas fa-folder fa-fw text-warning"></i>
-                </div>
-                <div class="folder-name">
-                  <span class="cursor-pointer" data-bs-toggle="collapse" data-bs-target="#${subfolderId}">${dir.name}</span>
-                </div>
-                <div class="ms-auto folder-token-count">
-                  <span class="badge bg-light text-secondary token-badge" 
-                    data-folder-tokens="${dir.token_count || 0}">${dir.token_count || 0} tokens</span>
-                </div>
-              </div>
-              <div class="collapse show" id="${subfolderId}">
-                <ul class="list-unstyled ms-4 folder-contents" data-folder-path="${dir.path}">
-                  ${renderTree(dir)}
-                </ul>
-              </div>
-            </li>
-          `;
+              </li>
+            `;
       });
     }
 
@@ -136,39 +136,39 @@ const FileSelector = (function () {
         const tokenEstimate = file.token_count || Math.round(file.size / 4); // Use actual token count if available
 
         html += `
-            <li class="tree-item file-item">
-              <div class="d-flex align-items-center p-2 border-bottom">
-                <div class="me-2">
-                  <input 
-                    type="checkbox" 
-                    class="form-check-input file-checkbox" 
-                    value="${file.path}" 
-                    data-size="${file.size}"
-                    data-token-estimate="${tokenEstimate}"
-                    ${isSelected ? "checked" : ""}
-                  />
+              <li class="tree-item file-item">
+                <div class="d-flex align-items-center p-2 border-bottom">
+                  <div class="me-2">
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input file-checkbox" 
+                      value="${file.path}" 
+                      data-size="${file.size}"
+                      data-token-estimate="${tokenEstimate}"
+                      ${isSelected ? "checked" : ""}
+                    />
+                  </div>
+                  <div class="me-2 invisible">
+                    <i class="fas fa-caret-right fa-fw"></i>
+                  </div>
+                  <div class="me-2">
+                    <i class="far fa-file fa-fw text-secondary"></i>
+                  </div>
+                  <div class="file-name text-truncate">
+                    ${file.name}
+                  </div>
+                  <div class="ms-auto file-details d-flex">
+                    <span class="badge bg-light text-secondary me-2">${file.type || ""}</span>
+                    <span class="badge bg-light text-secondary me-2">
+                      ${Utilities.formatFileSize(file.size)}
+                    </span>
+                    <span class="badge bg-light text-secondary token-badge" data-token-estimate="${tokenEstimate}">
+                      ${tokenEstimate} tokens
+                    </span>
+                  </div>
                 </div>
-                <div class="me-2 invisible">
-                  <i class="fas fa-caret-right fa-fw"></i>
-                </div>
-                <div class="me-2">
-                  <i class="far fa-file fa-fw text-secondary"></i>
-                </div>
-                <div class="file-name text-truncate">
-                  ${file.name}
-                </div>
-                <div class="ms-auto file-details d-flex">
-                  <span class="badge bg-light text-secondary me-2">${file.type || ""}</span>
-                  <span class="badge bg-light text-secondary me-2">
-                    ${formatFileSize(file.size)}
-                  </span>
-                  <span class="badge bg-light text-secondary token-badge" data-token-estimate="${tokenEstimate}">
-                    ${tokenEstimate} tokens
-                  </span>
-                </div>
-              </div>
-            </li>
-          `;
+              </li>
+            `;
       });
     }
 
@@ -178,21 +178,6 @@ const FileSelector = (function () {
     }
 
     return html;
-  }
-
-  /**
-   * Format file size in human-readable format
-   * @param {number} size - File size in bytes
-   * @returns {string} Formatted file size
-   */
-  function formatFileSize(size) {
-    if (size < 1024) {
-      return size + " B";
-    } else if (size < 1048576) {
-      return (size / 1024).toFixed(1) + " KB";
-    } else {
-      return (size / 1048576).toFixed(1) + " MB";
-    }
   }
 
   /**
@@ -235,7 +220,7 @@ const FileSelector = (function () {
 
         // Validate
         if (selectedFiles.length === 0 && selectedFolders.length === 0) {
-          showError("Please select at least one file or folder before generating.");
+          Utilities.showError("Please select at least one file or folder before generating.", "file-selection-form", "file-selector-error");
           return;
         }
 
@@ -457,17 +442,13 @@ const FileSelector = (function () {
     formData.append("search_query", query);
 
     // Fetch request to search files
-    fetch("/api/search_files", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
+    Utilities.fetchJSON(
+      "/api/search_files",
+      {
+        method: "POST",
+        body: formData,
+      },
+      (data) => {
         if (data.error) {
           searchStats.innerHTML = `<i class="fas fa-exclamation-circle me-2 text-danger"></i> Error: ${data.error}`;
           return;
@@ -485,11 +466,12 @@ const FileSelector = (function () {
         } else {
           searchStats.innerHTML = `<i class="fas fa-info-circle me-2"></i> No files found containing "${query}"`;
         }
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error searching files:", error);
         searchStats.innerHTML = `<i class="fas fa-exclamation-circle me-2 text-danger"></i> Error searching files: ${error.message}`;
-      });
+      }
+    );
   }
 
   /**
@@ -620,17 +602,13 @@ const FileSelector = (function () {
     const formData = new FormData();
     formData.append("folder_path", folderPath);
 
-    fetch("/api/get_folder_token_count", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
+    Utilities.fetchJSON(
+      "/api/get_folder_token_count",
+      {
+        method: "POST",
+        body: formData,
+      },
+      (data) => {
         if (data.error) {
           console.error("Error fetching token count:", data.error);
           badgeElement.textContent = "0 tokens";
@@ -643,11 +621,12 @@ const FileSelector = (function () {
 
         // Recalculate total tokens
         recalculateTokens();
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error fetching folder token count:", error);
         badgeElement.textContent = "0 tokens";
-      });
+      }
+    );
   }
 
   /**
@@ -725,33 +704,6 @@ const FileSelector = (function () {
         badgeElement.classList.add("bg-info", "text-dark");
       }
     }
-  }
-
-  /**
-   * Show an error message
-   * @param {string} message - Error message to display
-   */
-  function showError(message) {
-    // Check if error element already exists
-    let errorElement = document.getElementById("file-selector-error");
-
-    if (!errorElement) {
-      // Create error element
-      errorElement = document.createElement("div");
-      errorElement.id = "file-selector-error";
-      errorElement.className = "alert alert-danger mt-3";
-
-      // Get the form and insert error after it
-      const fileSelectionForm = document.getElementById("file-selection-form");
-      fileSelectionForm.parentNode.insertBefore(errorElement, fileSelectionForm.nextSibling);
-    }
-
-    errorElement.textContent = message;
-
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
-      errorElement.remove();
-    }, 5000);
   }
 
   // Public API

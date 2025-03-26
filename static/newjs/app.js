@@ -91,19 +91,21 @@ const App = (function () {
    * Fetch directory structure from the server
    */
   function fetchDirectoryStructure() {
-    return fetch("/api/get_complete_folder_tree", {
-      method: "POST",
-      body: new FormData(), // Empty form data for root path
-    })
-      .then((response) => response.json())
-      .then((data) => {
+    return Utilities.fetchJSON(
+      "/api/get_complete_folder_tree",
+      {
+        method: "POST",
+        body: new FormData(), // Empty form data for root path
+      },
+      (data) => {
         state.directoryStructure = data;
         return data;
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error fetching directory structure:", error);
-        showError("Failed to load directory structure. Please try again.");
-      });
+        Utilities.showError("Failed to load directory structure. Please try again.");
+      }
+    );
   }
 
   /**
@@ -133,15 +135,13 @@ const App = (function () {
     formData.append("include_coding_prompt", state.includeCodingPrompt ? "1" : "0");
     formData.append("include_directory_structure", state.includeDirectoryStructure ? "1" : "0");
 
-    return fetch("/api/generate", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => {
-        console.log("Response received:", response.status, response.statusText);
-        return response.json();
-      })
-      .then((data) => {
+    return Utilities.fetchJSON(
+      "/api/generate",
+      {
+        method: "POST",
+        body: formData,
+      },
+      (data) => {
         console.log("Data received:", {
           hasError: !!data.error,
           contentLength: data.combined_content ? data.combined_content.length : 0,
@@ -152,27 +152,30 @@ const App = (function () {
           throw new Error(data.error);
         }
         return data.combined_content;
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error generating content:", error);
-        showError("Failed to generate content. Please try again.");
+        Utilities.showError("Failed to generate content. Please try again.");
         return "";
-      });
+      }
+    );
   }
 
   /**
    * Fetch count of unsummarized files
    */
   function fetchUnsummarizedFilesCount() {
-    fetch("/api/count_unsummarized_files")
-      .then((response) => response.json())
-      .then((data) => {
+    Utilities.fetchJSON(
+      "/api/count_unsummarized_files",
+      {},
+      (data) => {
         const count = data.count || 0;
         updateUnsummarizedCount(count);
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error fetching unsummarized files count:", error);
-      });
+      }
+    );
   }
 
   /**
@@ -216,18 +219,21 @@ const App = (function () {
       formData.append("include_directory_structure", "on");
     }
 
-    fetch("/selection_method", {
-      method: "POST",
-      body: formData,
-    })
-      .then(() => {
+    Utilities.fetchJSON(
+      "/selection_method",
+      {
+        method: "POST",
+        body: formData,
+      },
+      () => {
         // Move to file selection
         showFileSelector();
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error storing prompt data:", error);
-        showError("Failed to save prompt. Please try again.");
-      });
+        Utilities.showError("Failed to save prompt. Please try again.");
+      }
+    );
   }
 
   /**
@@ -284,31 +290,33 @@ const App = (function () {
     const resultsContainer = document.getElementById("process-results");
     if (resultsContainer) {
       resultsContainer.innerHTML = `
-          <div class="alert alert-info">
-            <i class="fas fa-spinner fa-spin me-2"></i> Processing response...
-          </div>
-        `;
+            <div class="alert alert-info">
+              <i class="fas fa-spinner fa-spin me-2"></i> Processing response...
+            </div>
+          `;
     }
 
     // Send to backend for processing
-    fetch("/api/process_claude_response", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+    Utilities.fetchJSON(
+      "/api/process_claude_response",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          claude_response: response,
+        }),
       },
-      body: new URLSearchParams({
-        claude_response: response,
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
+      (data) => {
         // Update UI with results
         GenerateDialog.updateProcessingResults(data);
-      })
-      .catch((error) => {
+      },
+      (error) => {
         console.error("Error processing response:", error);
         GenerateDialog.showError("Error processing response: " + error.message);
-      });
+      }
+    );
   }
 
   /**
@@ -323,29 +331,6 @@ const App = (function () {
       selectedFolders: [],
       tokenCount: 0,
     };
-  }
-
-  /**
-   * Show an error message
-   * @param {string} message - Error message to display
-   */
-  function showError(message) {
-    const mainContent = document.getElementById("main-content");
-    const errorAlert = document.createElement("div");
-    errorAlert.className = "alert alert-danger alert-dismissible fade show my-3";
-    errorAlert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      `;
-
-    // Insert at the top of the main content
-    mainContent.insertBefore(errorAlert, mainContent.firstChild);
-
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
-      const alert = new bootstrap.Alert(errorAlert);
-      alert.close();
-    }, 5000);
   }
 
   // Public API

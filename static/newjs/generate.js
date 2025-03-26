@@ -10,50 +10,50 @@ const GenerateDialog = (function () {
    */
   function render() {
     return `
-        <div class="card shadow-sm mb-4">
-          <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">Your Generated Prompt</h2>
-          </div>
-          <div class="card-body">
-            <div class="mb-4">
-              <textarea id="prompt-content" class="form-control bg-light d-none" rows="15"></textarea>
+          <div class="card shadow-sm mb-4">
+            <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
+              <h2 class="h4 mb-0">Your Generated Prompt</h2>
             </div>
-  
-            <div class="d-flex flex-wrap gap-2 justify-content-between">
-              <div>
-                <button id="toggle-prompt-btn" class="btn btn-primary"><i class="fas fa-eye me-1"></i> Show Prompt</button>
-                <button id="copy-button" class="btn btn-primary ms-2"><i class="fas fa-copy me-1"></i> Copy to Clipboard</button>
-                <button id="back-button" class="btn btn-secondary ms-2"><i class="fas fa-arrow-left me-1"></i> Back</button>
-                <button id="restart-button" class="btn btn-secondary ms-2"><i class="fas fa-redo me-1"></i> Start New</button>
+            <div class="card-body">
+              <div class="mb-4">
+                <textarea id="prompt-content" class="form-control bg-light d-none" rows="15"></textarea>
               </div>
-              <a href="https://claude.ai/new" class="btn btn-success" id="claude-button" target="_blank">
-                <i class="fas fa-external-link-alt me-1"></i> Open Claude
-              </a>
+    
+              <div class="d-flex flex-wrap gap-2 justify-content-between">
+                <div>
+                  <button id="toggle-prompt-btn" class="btn btn-primary"><i class="fas fa-eye me-1"></i> Show Prompt</button>
+                  <button id="copy-button" class="btn btn-primary ms-2"><i class="fas fa-copy me-1"></i> Copy to Clipboard</button>
+                  <button id="back-button" class="btn btn-secondary ms-2"><i class="fas fa-arrow-left me-1"></i> Back</button>
+                  <button id="restart-button" class="btn btn-secondary ms-2"><i class="fas fa-redo me-1"></i> Start New</button>
+                </div>
+                <a href="https://claude.ai/new" class="btn btn-success" id="claude-button" target="_blank">
+                  <i class="fas fa-external-link-alt me-1"></i> Open Claude
+                </a>
+              </div>
+    
+              <div id="copy-status" class="alert mt-3 d-none"></div>
             </div>
-  
-            <div id="copy-status" class="alert mt-3 d-none"></div>
           </div>
-        </div>
-  
-        <div class="card shadow-sm mb-4">
-          <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
-            <h2 class="h4 mb-0">Paste Claude Response</h2>
-          </div>
-          <div class="card-body">
-            <div class="mb-4">
-              <textarea id="claude-response" class="form-control" rows="10" placeholder="Paste Claude's response here..."></textarea>
+    
+          <div class="card shadow-sm mb-4">
+            <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
+              <h2 class="h4 mb-0">Paste Claude Response</h2>
             </div>
-  
-            <div class="d-flex flex-wrap gap-2">
-              <button id="process-button" class="btn btn-primary">
-                <i class="fas fa-cogs me-1"></i> Process Response
-              </button>
+            <div class="card-body">
+              <div class="mb-4">
+                <textarea id="claude-response" class="form-control" rows="10" placeholder="Paste Claude's response here..."></textarea>
+              </div>
+    
+              <div class="d-flex flex-wrap gap-2">
+                <button id="process-button" class="btn btn-primary">
+                  <i class="fas fa-cogs me-1"></i> Process Response
+                </button>
+              </div>
+    
+              <div id="process-results" class="mt-3"></div>
             </div>
-  
-            <div id="process-results" class="mt-3"></div>
           </div>
-        </div>
-      `;
+        `;
   }
 
   /**
@@ -91,12 +91,11 @@ const GenerateDialog = (function () {
           promptContent.classList.remove("d-none");
         }
 
-        promptContent.select();
         const copyStatus = document.getElementById("copy-status");
 
-        try {
-          const success = document.execCommand("copy");
-          if (success) {
+        Utilities.copyToClipboard(
+          promptContent.value,
+          () => {
             copyStatus.textContent = "Copied to clipboard!";
             copyStatus.classList.remove("d-none", "alert-danger");
             copyStatus.classList.add("alert-success");
@@ -105,25 +104,17 @@ const GenerateDialog = (function () {
             setTimeout(function () {
               copyStatus.classList.add("d-none");
             }, 3000);
-          } else {
-            copyStatus.textContent = "Copy failed. Please try again.";
+          },
+          (err) => {
+            copyStatus.textContent = "Copy failed: " + err;
             copyStatus.classList.remove("d-none", "alert-success");
             copyStatus.classList.add("alert-danger");
           }
-        } catch (err) {
-          copyStatus.textContent = "Copy failed: " + err;
-          copyStatus.classList.remove("d-none", "alert-success");
-          copyStatus.classList.add("alert-danger");
-        }
+        );
 
         // If it was hidden, hide it again
         if (wasHidden) {
           promptContent.classList.add("d-none");
-        }
-
-        // Try modern clipboard API as fallback
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(promptContent.value).catch((err) => console.error("Failed to copy using Clipboard API:", err));
         }
 
         // Notify parent that copy action was performed
@@ -162,7 +153,7 @@ const GenerateDialog = (function () {
         const responseText = claudeResponse.value.trim();
 
         if (!responseText) {
-          showError("Please paste Claude's response first.");
+          GenerateDialog.showError("Please paste Claude's response first."); // Fix: Using the module's public method
           return;
         }
 
@@ -222,37 +213,24 @@ const GenerateDialog = (function () {
 
     // Update the results container
     resultsContainer.innerHTML = `
-        <div class="alert alert-${statusType}">
-          ${statusMessage}
-        </div>
-      `;
+          <div class="alert alert-${statusType}">
+            ${statusMessage}
+          </div>
+        `;
   }
 
   /**
    * Show an error message
    * @param {string} message - Error message to display
    */
-  function showError(message) {
-    const resultsContainer = document.getElementById("process-results");
-    if (!resultsContainer) return;
-
-    resultsContainer.innerHTML = `
-        <div class="alert alert-danger">
-          ${message}
-        </div>
-      `;
-
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
-      resultsContainer.innerHTML = "";
-    }, 5000);
-  }
 
   // Public API
   return {
     render: render,
     setupEventListeners: setupEventListeners,
     updateProcessingResults: updateProcessingResults,
-    showError: showError,
+    showError: function (message) {
+      Utilities.showError(message, "process-results");
+    },
   };
 })();
