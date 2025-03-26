@@ -31,6 +31,21 @@
         background-color: #f8f9fa;
       }
       
+      /* Sticky header for file selector */
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background-color: inherit;
+      }
+      
+      /* Scrollable content area */
+      .scrollable-container {
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: 1rem;
+      }
+      
       [data-bs-theme="dark"] .card-header-themed {
         background-color: #212529;
         color: #f8f9fa;

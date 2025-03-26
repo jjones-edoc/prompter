@@ -47,24 +47,26 @@ const FileSelector = (function () {
               </div>
             </div>
           </div>
-          <div class="card-body">
+          <div class="card-body p-0"> <!-- Removed padding for better control -->
             <form id="file-selection-form">
-              <!-- Action buttons - streamlined and sticky -->
-              <div class="d-flex justify-content-between mb-3 sticky-buttons">
-                <button type="button" id="back-button" class="btn btn-outline-secondary btn-sm">
-                  <i class="fas fa-arrow-left me-1"></i> Back
-                </button>
-                <div>
-                  <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-check-square me-1"></i> Select All
+              <!-- Action buttons - sticky header -->
+              <div class="sticky-header">
+                <div class="d-flex justify-content-between p-3 bg-body border-bottom">
+                  <button type="button" id="back-button" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Back
                   </button>
-                  <button type="submit" class="btn btn-primary btn-sm" id="next-button">
-                    <i class="fas fa-wand-magic-sparkles me-1"></i> Generate
-                  </button>
+                  <div>
+                    <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm">
+                      <i class="fas fa-check-square me-1"></i> Select All
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="next-button">
+                      <i class="fas fa-wand-magic-sparkles me-1"></i> Generate
+                    </button>
+                  </div>
                 </div>
               </div>
               
-              <div class="file-explorer">
+              <div class="file-explorer scrollable-container">
                 <!-- Tree view for folders and files -->
                 <div class="tree-view">
                   <ul class="tree-root list-unstyled" id="root-folder-contents">
