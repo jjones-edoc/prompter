@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, render_template
 from utils.scanner import Scanner
 from utils.database import Database
 from utils.repository_updater import RepositoryUpdater
@@ -10,6 +10,22 @@ from features.navigation.routes import register_navigation_routes
 from features.summarizer.routes import register_summarizer_routes
 from features.file_modification.routes import register_file_modification_routes
 from features.prompt_generation.routes import register_prompt_generation_routes
+
+
+def register_new_main_route(app, scanner):
+    """
+    Register the main route for the modern UI version.
+
+    Args:
+        app: Flask application instance
+        scanner: Scanner instance for file operations
+    """
+    @app.route('/main.html')
+    def modern_ui():
+        """
+        Serve the modern UI version that uses JavaScript for dialog rendering
+        """
+        return render_template('main.html')
 
 
 def create_app(directory: str, scan_on_startup: bool = True):
@@ -41,6 +57,8 @@ def create_app(directory: str, scan_on_startup: bool = True):
     register_ai_assistance_routes(app, scanner)
     register_summarizer_routes(app, scanner)  # Coming from features/summarizer
     register_file_modification_routes(app, scanner)
+
+    register_new_main_route(app, scanner)
 
     return app
 
