@@ -140,20 +140,20 @@ class Scanner:
         """Check if the file is a supported text file based on extension."""
         ext = os.path.splitext(path)[1].lower()
         return ext in self.SUPPORTED_TEXT_EXTENSIONS
-        
+
     def _is_searchable_file(self, file_path: str) -> bool:
         """Check if the file can be searched through (text-based)."""
         # Check if it's a supported text file
         if not self._is_text_file(file_path):
             return False
-            
+
         # Skip very large files (over 10MB)
         try:
             if os.path.getsize(file_path) > 10 * 1024 * 1024:
                 return False
         except Exception:
             return False
-            
+
         return True
 
     def count_tokens(self, file_path: str) -> int:
@@ -227,6 +227,10 @@ class Scanner:
                 rel_path = rel_path.replace(os.sep, '/')
 
                 if entry.is_dir():
+                    # Skip empty directories
+                    if self.is_dir_empty(rel_path):
+                        continue
+                        
                     # For directories, get token count recursively
                     dir_token_count = self.get_directory_token_count(rel_path)
 
@@ -237,6 +241,10 @@ class Scanner:
                         'token_count': dir_token_count
                     })
                 else:
+                    # Skip non-text files
+                    if not self._is_text_file(entry.path):
+                        continue
+
                     # Count tokens for this file
                     token_count = self.count_tokens(entry.path)
                     # Get file hash and last modified time
@@ -262,13 +270,7 @@ class Scanner:
 
     def get_directory_token_count(self, dir_path: str) -> int:
         """
-        Calculate total token count for all files in a directory recursively.
-
-        Args:
-            dir_path: Relative path from root directory
-
-        Returns:
-            Total token count for all files in the directory and subdirectories
+        Calculate total token count for all TEXT files in a directory recursively.
         """
         total_tokens = 0
         full_path = os.path.join(self.root_dir, dir_path)
@@ -282,7 +284,8 @@ class Scanner:
                 # Process files in this directory
                 for file in files:
                     file_path = os.path.join(root, file)
-                    if not self._should_exclude(file_path):
+                    if (not self._should_exclude(file_path) and
+                            self._is_text_file(file_path)):
                         total_tokens += self.count_tokens(file_path)
 
         except Exception as e:
@@ -290,6 +293,36 @@ class Scanner:
                 f"Error calculating tokens for directory {dir_path}: {str(e)}")
 
         return total_tokens
+        
+    def is_dir_empty(self, dir_path: str) -> bool:
+        """
+        Check if a directory is empty after applying .gitignore rules.
+        
+        Args:
+            dir_path: Relative path from root directory
+            
+        Returns:
+            bool: True if directory has no visible files or subdirectories, False otherwise
+        """
+        full_path = os.path.join(self.root_dir, dir_path)
+        
+        try:
+            # Check immediate contents first
+            for entry in os.scandir(full_path):
+                # Skip excluded items
+                if self._should_exclude(entry.path):
+                    continue
+                
+                # If we found any non-excluded item, the directory is not empty
+                return False
+                
+            # If we reach here, no visible items were found
+            return True
+            
+        except Exception as e:
+            print(f"Error checking if directory {dir_path} is empty: {str(e)}")
+            # In case of error, assume not empty as a safer default
+            return False
 
     def calculate_file_hash(self, file_path: str) -> str:
         """
@@ -326,50 +359,50 @@ class Scanner:
             return "[Binary file not included]"
         except Exception as e:
             return f"[Error reading file: {str(e)}]"
-            
+
     def search_files(self, search_query: str) -> List[Dict[str, Any]]:
         """
         Search all text files for the given query.
-        
+
         Args:
             search_query: Text to search for
-            
+
         Returns:
             List of dicts with file info
         """
         matching_files = []
-        
+
         # Normalize query for case-insensitive search
         search_query = search_query.lower()
-        
+
         try:
             # Walk through the entire directory structure
             for root, dirs, files in os.walk(self.root_dir):
                 # Filter out excluded directories
                 dirs[:] = [d for d in dirs if not self._should_exclude(
                     os.path.join(root, d))]
-                
+
                 # Process files in this directory
                 for file in files:
                     file_path = os.path.join(root, file)
-                    
+
                     # Skip if file should be excluded or is not searchable
                     if self._should_exclude(file_path) or not self._is_searchable_file(file_path):
                         continue
-                        
+
                     try:
                         # Get relative path from root
                         rel_path = os.path.relpath(file_path, self.root_dir)
                         rel_path = rel_path.replace(os.sep, '/')
-                        
+
                         # Search file content
                         with open(file_path, 'r', encoding='utf-8') as f:
                             content = f.read().lower()
-                            
+
                         if search_query in content:
                             # Count matches
                             match_count = content.count(search_query)
-                            
+
                             # Find lines with matches
                             lines = content.splitlines()
                             matching_lines = []
@@ -379,16 +412,16 @@ class Scanner:
                                         'line_number': i + 1,
                                         'text': line[:100] + ('...' if len(line) > 100 else '')
                                     })
-                                    
+
                                     # Limit to first 5 matching lines
                                     if len(matching_lines) >= 5:
                                         break
-                                        
+
                             # Get token count, file hash, and last modified time
                             token_count = self.count_tokens(file_path)
                             file_hash = self.calculate_file_hash(file_path)
                             last_modified = int(os.path.getmtime(file_path))
-                            
+
                             # Add to results
                             matching_files.append({
                                 'name': file,
@@ -404,21 +437,15 @@ class Scanner:
                     except (UnicodeDecodeError, IOError, OSError):
                         # Skip files that can't be read
                         continue
-                
+
         except Exception as e:
             print(f"Error searching files: {str(e)}")
-            
+
         return matching_files
 
     def get_folder_contents(self, folder_path: str) -> Tuple[List[DirInfo], List[FileInfo]]:
         """
-        Get all directories and files within a folder.
-
-        Args:
-            folder_path: Relative path from root directory
-
-        Returns:
-            Tuple of (directories, files) with token counts
+        Get all directories and text files within a folder.
         """
         dirs = []
         files = []
@@ -441,6 +468,10 @@ class Scanner:
                 rel_path = rel_path.replace(os.sep, '/')
 
                 if entry.is_dir():
+                    # Skip empty directories
+                    if self.is_dir_empty(rel_path):
+                        continue
+                        
                     # Calculate token count for this directory
                     token_count = self.get_directory_token_count(rel_path)
 
@@ -451,6 +482,10 @@ class Scanner:
                         token_count=token_count
                     ))
                 else:
+                    # Skip non-text files
+                    if not self._is_text_file(entry.path):
+                        continue
+
                     # Count tokens for this file
                     token_count = self.count_tokens(entry.path)
                     # Get file hash and last modified time
