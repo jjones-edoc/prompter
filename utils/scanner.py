@@ -1,6 +1,5 @@
 import os
 import tiktoken
-import hashlib
 import time
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
@@ -15,7 +14,6 @@ class FileInfo:
     size: int
     type: str
     token_count: int = 0
-    file_hash: str = ""
     last_modified: int = 0
 
 
@@ -30,7 +28,7 @@ class DirInfo:
 class Scanner:
     """
     Enhanced file system handler that respects .gitignore rules, handles directory navigation,
-    and provides token counting, file hashing, and modification tracking for files.
+    and provides token counting and modification tracking for files.
     """
     ALWAYS_HIDDEN = {'.git', '__pycache__', '.vscode', '.idea', '.venv'}
     SUPPORTED_TEXT_EXTENSIONS = {
@@ -104,11 +102,11 @@ class Scanner:
         Helper method to scan a directory and collect file and directory information.
         This is a shared implementation used by both get_items() and get_folder_contents().
         Respects .gitignore rules and filters for text files only.
-        
+
         Args:
             dir_path: Absolute path of the directory to scan
             error_context: Context string for error messages
-            
+
         Returns:
             Tuple containing (directories_list, files_list) where each item is a dictionary
             with standardized file/directory information including:
@@ -116,36 +114,37 @@ class Scanner:
             - path: relative path from root
             - full_path: absolute path
             - token_count: estimated token count
-            - files also include: size, type, file_hash, last_modified
+            - files also include: size, type, last_modified
         """
         dirs_list = []
         files_list = []
-        
+
         # Check if directory exists
         if not os.path.isdir(dir_path):
             return dirs_list, files_list
-            
+
         try:
             # Sort entries for consistent output
-            entries = sorted(os.scandir(dir_path), key=lambda e: e.name.lower())
-            
+            entries = sorted(os.scandir(dir_path),
+                             key=lambda e: e.name.lower())
+
             for entry in entries:
                 # Skip excluded items
                 if self._should_exclude(entry.path):
                     continue
-                    
+
                 # Get relative path from root for the item
                 rel_path = os.path.relpath(entry.path, self.root_dir)
                 rel_path = rel_path.replace(os.sep, '/')
-                
+
                 if entry.is_dir():
                     # Skip empty directories or directories with no files in subtree
                     if self.is_dir_empty(rel_path) or not self.has_files_in_subtree(rel_path):
                         continue
-                        
+
                     # For directories, get token count recursively
                     dir_token_count = self.get_directory_token_count(rel_path)
-                    
+
                     dirs_list.append({
                         'name': entry.name,
                         'path': rel_path,
@@ -156,13 +155,12 @@ class Scanner:
                     # Skip non-text files
                     if not self._is_text_file(entry.path):
                         continue
-                        
+
                     # Count tokens for this file
                     token_count = self.count_tokens(entry.path)
-                    # Get file hash and last modified time
-                    file_hash = self.calculate_file_hash(entry.path)
+                    # Get last modified time
                     last_modified = int(os.path.getmtime(entry.path))
-                    
+
                     files_list.append({
                         'name': entry.name,
                         'path': rel_path,
@@ -170,15 +168,14 @@ class Scanner:
                         'size': entry.stat().st_size,
                         'type': os.path.splitext(entry.name)[1][1:] or 'unknown',
                         'token_count': token_count,
-                        'file_hash': file_hash,
                         'last_modified': last_modified
                     })
-                    
+
         except Exception as e:
             print(f"Error {error_context} {dir_path}: {str(e)}")
-            
+
         return dirs_list, files_list
-        
+
     def get_items(self, subpath: str = "") -> Dict[str, Any]:
         """
         Get directories and files in the specified path, respecting .gitignore rules.
@@ -211,7 +208,8 @@ class Scanner:
         }
 
         # Use the helper method to scan the directory
-        dirs_list, files_list = self._scan_directory(current_dir, "scanning for get_items")
+        dirs_list, files_list = self._scan_directory(
+            current_dir, "scanning for get_items")
         result['dirs'] = dirs_list
         result['files'] = files_list
 
@@ -242,93 +240,73 @@ class Scanner:
                 f"Error calculating tokens for directory {dir_path}: {str(e)}")
 
         return total_tokens
-        
+
     def is_dir_empty(self, dir_path: str) -> bool:
         """
         Check if a directory is empty after applying .gitignore rules.
-        
+
         Args:
             dir_path: Relative path from root directory
-            
+
         Returns:
             bool: True if directory has no visible files or subdirectories, False otherwise
         """
         full_path = os.path.join(self.root_dir, dir_path)
-        
+
         try:
             # Check immediate contents first
             for entry in os.scandir(full_path):
                 # Skip excluded items
                 if self._should_exclude(entry.path):
                     continue
-                
+
                 # If we found any non-excluded item, the directory is not empty
                 return False
-                
+
             # If we reach here, no visible items were found
             return True
-            
+
         except Exception as e:
             print(f"Error checking if directory {dir_path} is empty: {str(e)}")
             # In case of error, assume not empty as a safer default
             return False
-            
+
     def has_files_in_subtree(self, dir_path: str) -> bool:
         """
         Check if a directory or any of its subdirectories contain files (not just folders).
-        
+
         Args:
             dir_path: Relative path from root directory
-            
+
         Returns:
             bool: True if directory subtree contains at least one file, False otherwise
         """
         full_path = os.path.join(self.root_dir, dir_path)
-        
+
         try:
             for root, dirs, files in os.walk(full_path):
                 # Filter out excluded directories
                 dirs[:] = [d for d in dirs if not self._should_exclude(
                     os.path.join(root, d))]
-                
+
                 # Filter out excluded files
                 valid_files = [f for f in files if not self._should_exclude(
                     os.path.join(root, f))]
-                
+
                 # If any non-excluded text files remain, the subtree has files
                 for file in valid_files:
                     file_path = os.path.join(root, file)
                     if self._is_text_file(file_path):
                         return True
-            
+
             # If we reach here, no valid files were found in the subtree
             return False
-            
+
         except Exception as e:
-            print(f"Error checking if directory {dir_path} has files: {str(e)}")
+            print(
+                f"Error checking if directory {dir_path} has files: {str(e)}")
             # In case of error, assume has files as a safer default
             return True
-
-    def calculate_file_hash(self, file_path: str) -> str:
-        """
-        Calculate a SHA-256 hash of a file's contents.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            str: Hexadecimal hash string
-        """
-        hash_sha256 = hashlib.sha256()
-
-        try:
-            with open(file_path, 'rb') as f:
-                for chunk in iter(lambda: f.read(4096), b''):
-                    hash_sha256.update(chunk)
-            return hash_sha256.hexdigest()
-        except Exception as e:
-            # Return a hash of the error string for files that can't be read
-            return hashlib.sha256(str(e).encode()).hexdigest()
 
     def get_file_contents(self, file_path: str) -> Optional[str]:
         """Read file contents, handling encoding issues."""
@@ -402,9 +380,8 @@ class Scanner:
                                     if len(matching_lines) >= 5:
                                         break
 
-                            # Get token count, file hash, and last modified time
+                            # Get token count and last modified time
                             token_count = self.count_tokens(file_path)
-                            file_hash = self.calculate_file_hash(file_path)
                             last_modified = int(os.path.getmtime(file_path))
 
                             # Add to results
@@ -414,7 +391,6 @@ class Scanner:
                                 'size': os.path.getsize(file_path),
                                 'type': os.path.splitext(file)[1][1:] or 'unknown',
                                 'token_count': token_count,
-                                'file_hash': file_hash,
                                 'last_modified': last_modified,
                                 'match_count': match_count,
                                 'matching_lines': matching_lines
@@ -432,10 +408,10 @@ class Scanner:
         """
         Get all directories and text files within a folder.
         Similar to get_items() but returns strongly typed objects instead of dictionaries.
-        
+
         Args:
             folder_path: Relative path from root directory to scan
-            
+
         Returns:
             Tuple containing:
             - List[DirInfo]: List of directory information objects
@@ -443,10 +419,11 @@ class Scanner:
         """
         # Get the absolute path
         full_path = os.path.join(self.root_dir, folder_path)
-        
+
         # Get directory contents using the helper method
-        dirs_dicts, files_dicts = self._scan_directory(full_path, "getting folder contents")
-        
+        dirs_dicts, files_dicts = self._scan_directory(
+            full_path, "getting folder contents")
+
         # Convert dictionaries to strongly typed objects
         dirs = [DirInfo(
             name=d['name'],
@@ -454,7 +431,7 @@ class Scanner:
             full_path=d['full_path'],
             token_count=d['token_count']
         ) for d in dirs_dicts]
-        
+
         files = [FileInfo(
             name=f['name'],
             path=f['path'],
@@ -462,8 +439,7 @@ class Scanner:
             size=f['size'],
             type=f['type'],
             token_count=f['token_count'],
-            file_hash=f['file_hash'],
             last_modified=f['last_modified']
         ) for f in files_dicts]
-        
+
         return dirs, files
