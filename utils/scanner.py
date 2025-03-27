@@ -227,8 +227,8 @@ class Scanner:
                 rel_path = rel_path.replace(os.sep, '/')
 
                 if entry.is_dir():
-                    # Skip empty directories
-                    if self.is_dir_empty(rel_path):
+                    # Skip empty directories or directories with no files in subtree
+                    if self.is_dir_empty(rel_path) or not self.has_files_in_subtree(rel_path):
                         continue
                         
                     # For directories, get token count recursively
@@ -323,6 +323,42 @@ class Scanner:
             print(f"Error checking if directory {dir_path} is empty: {str(e)}")
             # In case of error, assume not empty as a safer default
             return False
+            
+    def has_files_in_subtree(self, dir_path: str) -> bool:
+        """
+        Check if a directory or any of its subdirectories contain files (not just folders).
+        
+        Args:
+            dir_path: Relative path from root directory
+            
+        Returns:
+            bool: True if directory subtree contains at least one file, False otherwise
+        """
+        full_path = os.path.join(self.root_dir, dir_path)
+        
+        try:
+            for root, dirs, files in os.walk(full_path):
+                # Filter out excluded directories
+                dirs[:] = [d for d in dirs if not self._should_exclude(
+                    os.path.join(root, d))]
+                
+                # Filter out excluded files
+                valid_files = [f for f in files if not self._should_exclude(
+                    os.path.join(root, f))]
+                
+                # If any non-excluded text files remain, the subtree has files
+                for file in valid_files:
+                    file_path = os.path.join(root, file)
+                    if self._is_text_file(file_path):
+                        return True
+            
+            # If we reach here, no valid files were found in the subtree
+            return False
+            
+        except Exception as e:
+            print(f"Error checking if directory {dir_path} has files: {str(e)}")
+            # In case of error, assume has files as a safer default
+            return True
 
     def calculate_file_hash(self, file_path: str) -> str:
         """
@@ -468,8 +504,8 @@ class Scanner:
                 rel_path = rel_path.replace(os.sep, '/')
 
                 if entry.is_dir():
-                    # Skip empty directories
-                    if self.is_dir_empty(rel_path):
+                    # Skip empty directories or directories with no files in subtree
+                    if self.is_dir_empty(rel_path) or not self.has_files_in_subtree(rel_path):
                         continue
                         
                     # Calculate token count for this directory
