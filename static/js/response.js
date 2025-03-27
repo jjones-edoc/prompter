@@ -9,7 +9,7 @@ const ResponseDialog = (function () {
    * @param {string} claudeResponse - Claude's response text (optional)
    * @returns {string} HTML content for the response dialog
    */
-  function render(claudeResponse = '') {
+  function render(claudeResponse = "") {
     return `
       <div class="card shadow-sm mb-4">
         <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
@@ -49,76 +49,29 @@ const ResponseDialog = (function () {
    * @param {Function} actionCallback - Callback for dialog actions
    */
   function setupEventListeners(actionCallback) {
-    // Paste from clipboard button
-    const pasteFromClipboardBtn = document.getElementById("paste-from-clipboard-btn");
-    const claudeResponseTextarea = document.getElementById("claude-response");
+    // Paste from clipboard button - using the new utility function
+    Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response", "process-results");
 
-    if (pasteFromClipboardBtn && claudeResponseTextarea) {
-      pasteFromClipboardBtn.addEventListener("click", async function () {
-        try {
-          // Clear the textarea first
-          claudeResponseTextarea.value = "";
-          
-          // Request clipboard read permission and get text
-          const text = await navigator.clipboard.readText();
+    // Process button - using the new utility function
+    Utilities.setupButtonListener("process-button", function () {
+      const responseText = document.getElementById("claude-response").value.trim();
 
-          // Set the textarea value to the clipboard content
-          claudeResponseTextarea.value = text;
+      if (!responseText) {
+        Utilities.showError("Please paste Claude's response first.", "process-results");
+        return;
+      }
 
-          // Show success message
-          const processResults = document.getElementById("process-results");
-          if (processResults) {
-            processResults.innerHTML = `
-              <div class="alert alert-success">
-                <strong>Success!</strong> Content pasted from clipboard.
-              </div>
-            `;
+      if (actionCallback) {
+        actionCallback("process", { claudeResponse: responseText });
+      }
+    });
 
-            // Clear the message after 3 seconds
-            setTimeout(function () {
-              processResults.innerHTML = "";
-            }, 3000);
-          }
-        } catch (err) {
-          // Handle errors (e.g., clipboard permission denied)
-          const processResults = document.getElementById("process-results");
-          if (processResults) {
-            processResults.innerHTML = `
-              <div class="alert alert-danger">
-                <strong>Error:</strong> Could not access clipboard. ${err.message}
-              </div>
-            `;
-          }
-        }
-      });
-    }
-
-    // Process button
-    const processButton = document.getElementById("process-button");
-    if (processButton && claudeResponseTextarea) {
-      processButton.addEventListener("click", function () {
-        const responseText = claudeResponseTextarea.value.trim();
-
-        if (!responseText) {
-          Utilities.showError("Please paste Claude's response first.", "process-results");
-          return;
-        }
-
-        if (actionCallback) {
-          actionCallback("process", { claudeResponse: responseText });
-        }
-      });
-    }
-
-    // Done button (back to prompt)
-    const doneButton = document.getElementById("done-button");
-    if (doneButton) {
-      doneButton.addEventListener("click", function () {
-        if (actionCallback) {
-          actionCallback("done");
-        }
-      });
-    }
+    // Done button (back to prompt) - using the new utility function
+    Utilities.setupButtonListener("done-button", function () {
+      if (actionCallback) {
+        actionCallback("done");
+      }
+    });
   }
 
   /**

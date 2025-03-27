@@ -142,11 +142,87 @@ const Utilities = (function () {
       });
   }
 
+  /**
+   * Create and set up a button click event listener
+   * @param {string} buttonId - Button element ID
+   * @param {Function} callback - Click event callback
+   * @returns {HTMLElement|null} - The button element or null if not found
+   */
+  function setupButtonListener(buttonId, callback) {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      button.addEventListener("click", callback);
+    }
+    return button;
+  }
+
+  /**
+   * Set up clipboard paste functionality
+   * @param {string} buttonId - Paste button ID
+   * @param {string} targetId - Target textarea ID
+   * @param {string} resultsId - Results container ID (optional)
+   * @returns {boolean} - True if setup was successful
+   */
+  function setupClipboardPaste(buttonId, targetId, resultsId = null) {
+    const pasteButton = document.getElementById(buttonId);
+    const targetElement = document.getElementById(targetId);
+
+    if (!pasteButton || !targetElement) {
+      return false;
+    }
+
+    pasteButton.addEventListener("click", async function () {
+      try {
+        // Clear the textarea first
+        targetElement.value = "";
+
+        // Request clipboard read permission and get text
+        const text = await navigator.clipboard.readText();
+
+        // Set the textarea value to the clipboard content
+        targetElement.value = text;
+
+        // Show success message if results container is specified
+        if (resultsId) {
+          const processResults = document.getElementById(resultsId);
+          if (processResults) {
+            processResults.innerHTML = `
+            <div class="alert alert-success">
+              <strong>Success!</strong> Content pasted from clipboard.
+            </div>
+          `;
+
+            // Clear the message after 3 seconds
+            setTimeout(function () {
+              processResults.innerHTML = "";
+            }, 3000);
+          }
+        }
+      } catch (err) {
+        // Handle errors (e.g., clipboard permission denied)
+        if (resultsId) {
+          const processResults = document.getElementById(resultsId);
+          if (processResults) {
+            processResults.innerHTML = `
+            <div class="alert alert-danger">
+              <strong>Error:</strong> Could not access clipboard. ${err.message}
+            </div>
+          `;
+          }
+        }
+      }
+    });
+
+    return true;
+  }
+
   // Public API
   return {
     showError,
     formatFileSize,
     copyToClipboard,
     fetchJSON,
+    setupButtonListener,
+    setupClipboardPaste,
   };
 })();
