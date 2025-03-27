@@ -1,17 +1,10 @@
 import os
-import pathspec
 import tiktoken
 import hashlib
 import time
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
-
-
-@dataclass
-class GitignoreSpec:
-    path: str
-    spec: pathspec.PathSpec
-    patterns: List[str]
+from utils.gitignore_manager import GitIgnoreManager
 
 
 @dataclass
@@ -49,7 +42,7 @@ class Scanner:
 
     def __init__(self, root_dir: str):
         self.root_dir = os.path.abspath(root_dir)
-        self.gitignore_specs = self._load_all_gitignores()
+        self.gitignore_manager = GitIgnoreManager(self.root_dir)
         try:
             self.encoding = tiktoken.get_encoding("cl100k_base")
             self.has_tiktoken = True
@@ -57,84 +50,9 @@ class Scanner:
             # Fallback to simple estimation if tiktoken is not available
             self.has_tiktoken = False
 
-    def _load_gitignore_file(self, path: str) -> List[str]:
-        """Load patterns from a .gitignore file."""
-        patterns = []
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        patterns.append(line)
-        except Exception as e:
-            print(f"Could not read .gitignore file at {path}: {str(e)}")
-        return patterns
-
-    def _load_all_gitignores(self) -> List[GitignoreSpec]:
-        """Load all .gitignore files in the directory tree."""
-        specs = []
-        try:
-            for root, dirs, files in os.walk(str(self.root_dir)):
-                # Filter out hidden directories
-                dirs[:] = [d for d in dirs if d not in self.ALWAYS_HIDDEN]
-
-                if '.gitignore' in files:
-                    gitignore_path = os.path.join(root, '.gitignore')
-                    patterns = self._load_gitignore_file(gitignore_path)
-                    if patterns:
-                        spec = pathspec.PathSpec.from_lines(
-                            'gitwildmatch', patterns)
-                        specs.append(GitignoreSpec(
-                            path=root,
-                            spec=spec,
-                            patterns=patterns
-                        ))
-
-            # Sort specs by path length to ensure parent directories are processed first
-            specs.sort(key=lambda x: len(x.path))
-            return specs
-        except Exception as e:
-            print(f"Error walking directory tree: {str(e)}")
-            return []
-
     def _should_exclude(self, path: str) -> bool:
         """Check if a path should be excluded based on applicable .gitignore rules."""
-        abs_path = os.path.abspath(path)
-        name = os.path.basename(path)
-
-        # Core exclusion rules
-        if abs_path == self.root_dir:
-            return False
-        if name in self.ALWAYS_HIDDEN or name.startswith('.'):
-            return True
-        if name == '.gitignore':
-            return False
-
-        try:
-            rel_path = os.path.relpath(
-                abs_path, self.root_dir).replace(os.sep, '/')
-            if os.path.isdir(abs_path):
-                rel_path += '/'
-
-            # Check against gitignore specs
-            for spec in self.gitignore_specs:
-                spec_dir = os.path.abspath(spec.path)
-                if abs_path.startswith(spec_dir) or spec_dir == self.root_dir:
-                    try:
-                        gitignore_rel_path = os.path.relpath(
-                            abs_path, spec.path).replace(os.sep, '/')
-                        if os.path.isdir(abs_path):
-                            gitignore_rel_path += '/'
-
-                        if spec.spec.match_file(gitignore_rel_path):
-                            return True
-                    except ValueError:
-                        continue
-
-        except ValueError:
-            print(f"Could not compute relative path for: {path}")
-
-        return False
+        return self.gitignore_manager.should_exclude(path)
 
     def _is_text_file(self, path: str) -> bool:
         """Check if the file is a supported text file based on extension."""
