@@ -20,11 +20,7 @@ const App = (function () {
   function init() {
     // Start with the prompt dialog
     showPromptDialog();
-
-    // Check for unsummarized files count
-    fetchUnsummarizedFilesCount();
   }
-
   /**
    * Show the prompt input dialog
    */
@@ -123,44 +119,6 @@ const App = (function () {
         return "";
       }
     );
-  }
-
-  /**
-   * Fetch count of unsummarized files
-   */
-  function fetchUnsummarizedFilesCount() {
-    Utilities.fetchJSON(
-      "/api/count_unsummarized_files",
-      {},
-      (data) => {
-        const count = data.count || 0;
-        updateUnsummarizedCount(count);
-      },
-      (error) => {
-        console.error("Error fetching unsummarized files count:", error);
-      }
-    );
-  }
-
-  /**
-   * Update the UI with unsummarized files count
-   */
-  function updateUnsummarizedCount(count) {
-    const unfamiliarBtns = document.querySelectorAll(".unfamiliar-files-btn");
-
-    unfamiliarBtns.forEach((btn) => {
-      const countElement = btn.querySelector(".unfamiliar-count");
-      if (countElement) {
-        countElement.textContent = count;
-      }
-
-      if (count > 0) {
-        btn.classList.remove("d-none");
-        btn.setAttribute("title", `${count} unfamiliar file${count !== 1 ? "s" : ""}`);
-      } else {
-        btn.classList.add("d-none");
-      }
-    });
   }
 
   /**

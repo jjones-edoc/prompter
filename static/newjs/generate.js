@@ -153,7 +153,7 @@ const GenerateDialog = (function () {
         const responseText = claudeResponse.value.trim();
 
         if (!responseText) {
-          GenerateDialog.showError("Please paste Claude's response first."); // Fix: Using the module's public method
+          Utilities.showError("Please paste Claude's response first.", "process-results");
           return;
         }
 
@@ -219,18 +219,10 @@ const GenerateDialog = (function () {
         `;
   }
 
-  /**
-   * Show an error message
-   * @param {string} message - Error message to display
-   */
-
   // Public API
   return {
     render: render,
     setupEventListeners: setupEventListeners,
     updateProcessingResults: updateProcessingResults,
-    showError: function (message) {
-      Utilities.showError(message, "process-results");
-    },
   };
 })();
