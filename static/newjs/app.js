@@ -55,35 +55,11 @@ const App = (function () {
     const mainContent = document.getElementById("main-content");
     mainContent.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Generating prompt...</div>';
 
-    console.log("Starting content generation process");
-
     // Generate the combined content
     generateCombinedContent().then((combinedContent) => {
-      console.log("Content generation completed:", {
-        contentReceived: !!combinedContent,
-        contentLength: combinedContent ? combinedContent.length : 0,
-      });
-
-      state.combinedContent = combinedContent;
-
-      console.log("Updated state with combined content");
-
-      mainContent.innerHTML = GenerateDialog.render(state);
-      document.getElementById("prompt-content").value = combinedContent;
+      mainContent.innerHTML = GenerateDialog.render();
+      document.getElementById("prompt-content").value = combinedContent.combined_content;
       GenerateDialog.setupEventListeners(handleGenerateActions);
-
-      // Verify the content was properly set in the textarea
-      const promptTextarea = document.getElementById("prompt-content");
-      if (promptTextarea) {
-        console.log("Textarea content check:", {
-          textareaExists: true,
-          valueLength: promptTextarea.value ? promptTextarea.value.length : 0,
-          isEmpty: !promptTextarea.value || promptTextarea.value.trim() === "",
-          isHidden: promptTextarea.classList.contains("d-none"),
-        });
-      } else {
-        console.log("Textarea element not found after rendering");
-      }
     });
   }
 
@@ -114,12 +90,6 @@ const App = (function () {
   function generateCombinedContent() {
     const formData = new FormData();
 
-    console.log("Generating combined content with:", {
-      selectedFiles: state.selectedFiles,
-      selectedFolders: state.selectedFolders,
-      promptLength: state.userPrompt.length,
-    });
-
     // Add selected files
     state.selectedFiles.forEach((file) => {
       formData.append("selected_files", file);
@@ -142,16 +112,10 @@ const App = (function () {
         body: formData,
       },
       (data) => {
-        console.log("Data received:", {
-          hasError: !!data.error,
-          contentLength: data.combined_content ? data.combined_content.length : 0,
-          contentPreview: data.combined_content ? data.combined_content.substring(0, 100) + "..." : "No content",
-        });
-
         if (data.error) {
           throw new Error(data.error);
         }
-        return data.combined_content;
+        return data;
       },
       (error) => {
         console.error("Error generating content:", error);
@@ -209,31 +173,8 @@ const App = (function () {
     state.includeCodingPrompt = promptData.includeCodingPrompt;
     state.includeDirectoryStructure = promptData.includeDirectoryStructure;
 
-    // Store in session via API
-    const formData = new FormData();
-    formData.append("prompt", promptData.prompt);
-    if (promptData.includeCodingPrompt) {
-      formData.append("include_coding_prompt", "on");
-    }
-    if (promptData.includeDirectoryStructure) {
-      formData.append("include_directory_structure", "on");
-    }
-
-    Utilities.fetchJSON(
-      "/selection_method",
-      {
-        method: "POST",
-        body: formData,
-      },
-      () => {
-        // Move to file selection
-        showFileSelector();
-      },
-      (error) => {
-        console.error("Error storing prompt data:", error);
-        Utilities.showError("Failed to save prompt. Please try again.");
-      }
-    );
+    // Move directly to file selection without any API calls
+    showFileSelector();
   }
 
   /**
