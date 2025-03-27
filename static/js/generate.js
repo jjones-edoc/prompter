@@ -45,6 +45,9 @@ const GenerateDialog = (function () {
               </div>
     
               <div class="d-flex flex-wrap gap-2">
+                <button id="paste-from-clipboard-btn" class="btn btn-primary">
+                  <i class="fas fa-paste me-1"></i> Paste from Clipboard
+                </button>
                 <button id="process-button" class="btn btn-primary">
                   <i class="fas fa-cogs me-1"></i> Process Response
                 </button>
@@ -61,6 +64,50 @@ const GenerateDialog = (function () {
    * @param {Function} actionCallback - Callback for dialog actions
    */
   function setupEventListeners(actionCallback) {
+    // Paste from clipboard button
+    const pasteFromClipboardBtn = document.getElementById("paste-from-clipboard-btn");
+    const claudeResponseTextarea = document.getElementById("claude-response");
+
+    if (pasteFromClipboardBtn && claudeResponseTextarea) {
+      pasteFromClipboardBtn.addEventListener("click", async function () {
+        try {
+          // Clear the textarea first
+          claudeResponseTextarea.value = "";
+          
+          // Request clipboard read permission and get text
+          const text = await navigator.clipboard.readText();
+
+          // Set the textarea value to the clipboard content
+          claudeResponseTextarea.value = text;
+
+          // Show success message
+          const processResults = document.getElementById("process-results");
+          if (processResults) {
+            processResults.innerHTML = `
+              <div class="alert alert-success">
+                <strong>Success!</strong> Content pasted from clipboard.
+              </div>
+            `;
+
+            // Clear the message after 3 seconds
+            setTimeout(function () {
+              processResults.innerHTML = "";
+            }, 3000);
+          }
+        } catch (err) {
+          // Handle errors (e.g., clipboard permission denied)
+          const processResults = document.getElementById("process-results");
+          if (processResults) {
+            processResults.innerHTML = `
+              <div class="alert alert-danger">
+                <strong>Error:</strong> Could not access clipboard. ${err.message}
+              </div>
+            `;
+          }
+        }
+      });
+    }
+
     // Toggle prompt visibility
     const togglePromptBtn = document.getElementById("toggle-prompt-btn");
     const promptContent = document.getElementById("prompt-content");
