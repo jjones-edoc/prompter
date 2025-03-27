@@ -6,7 +6,9 @@ const FileSelector = (function () {
   let treeData = null,
     tokenCount = 0,
     selectedFiles = [],
-    selectedFolders = [];
+    selectedFolders = [],
+    isSearchActive = false,
+    matchingFiles = [];
 
   // Render the file selector dialog
   function render(state) {
@@ -26,37 +28,37 @@ const FileSelector = (function () {
             </span>
           </div>
         </div>
-        <div class="card-body pb-0">
-          <!-- Search box -->
-          <div class="input-group mb-3">
-            <span class="input-group-text"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control" id="search-input" placeholder="Search files by content..." aria-label="Search files">
-            <button class="btn btn-outline-secondary" type="button" id="search-button">Search</button>
-          </div>
-          <div id="search-results" class="mb-3 d-none">
-            <div class="alert alert-info d-flex align-items-center">
-              <div class="me-auto" id="search-stats"></div>
-              <button class="btn btn-sm btn-outline-primary" id="select-found-files">Select All Found Files</button>
-              <button class="btn btn-sm btn-outline-secondary ms-2" id="clear-search">Clear</button>
-            </div>
-          </div>
-        </div>
         <div class="card-body p-0">
           <form id="file-selection-form">
             <!-- Action buttons - sticky header -->
             <div class="sticky-header">
               <div class="d-flex justify-content-between p-3 bg-body border-bottom">
-                <button type="button" id="back-button" class="btn btn-outline-secondary btn-sm">
-                  <i class="fas fa-arrow-left me-1"></i> Back
-                </button>
-                <div>
-                  <button type="button" id="select-all-btn" class="btn btn-outline-secondary btn-sm">
+                <div class="d-flex align-items-center flex-grow-1 me-3">
+                  <button type="button" id="back-button" class="btn btn-outline-secondary me-3 d-flex align-items-center justify-content-center" style="height: 38px; min-width: 80px;">
+                    <i class="fas fa-arrow-left me-1"></i> Back
+                  </button>
+                  
+                  <!-- Search input moved here, with improved styling -->
+                  <div class="input-group flex-grow-1">
+                    <input type="text" class="form-control" id="search-input" placeholder="Search files..." aria-label="Search files" style="height: 38px;">
+                    <button class="btn btn-outline-secondary" type="button" id="search-button" style="height: 38px;">
+                      <i class="fas fa-search"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center">
+                  <button type="button" id="select-all-btn" class="btn btn-outline-secondary me-2" style="height: 38px;">
                     <i class="fas fa-check-square me-1"></i> Select All
                   </button>
-                  <button type="submit" class="btn btn-primary btn-sm" id="next-button">
+                  <button type="submit" class="btn btn-primary" id="next-button" style="height: 38px;">
                     <i class="fas fa-wand-magic-sparkles me-1"></i> Generate
                   </button>
                 </div>
+              </div>
+              <!-- Search status indicator -->
+              <div id="search-status" class="px-3 py-2 bg-light border-bottom d-none">
+                <span id="search-stats"></span>
+                <button class="btn btn-sm btn-link" id="clear-search">Clear Search</button>
               </div>
             </div>
             
@@ -139,6 +141,41 @@ const FileSelector = (function () {
     return html;
   }
 
+  // Render search results
+  function renderSearchResults(matches) {
+    if (!matches || matches.length === 0) {
+      return '<li class="py-2 text-center text-muted"><i class="fas fa-search me-2"></i> No matching files found</li>';
+    }
+
+    let html = "";
+
+    matches.forEach((file) => {
+      const isSelected = selectedFiles.includes(file.path);
+      const tokenEstimate = file.token_count || Math.round(file.size / 4);
+
+      html += `
+        <li class="tree-item file-item search-match">
+          <div class="d-flex align-items-center p-2 border-bottom">
+            <div class="me-2"><input type="checkbox" class="form-check-input file-checkbox" value="${file.path}" data-size="${
+        file.size || 0
+      }" data-token-estimate="${tokenEstimate}" ${isSelected ? "checked" : ""} /></div>
+            <div class="me-2 invisible"><i class="fas fa-caret-right fa-fw"></i></div>
+            <div class="me-2"><i class="far fa-file fa-fw text-secondary"></i></div>
+            <div class="file-name text-truncate">${file.name}</div>
+            <div class="ms-auto file-details d-flex">
+              <span class="badge bg-primary text-white me-2">${file.match_count} match${file.match_count !== 1 ? "es" : ""}</span>
+              <span class="badge bg-light text-secondary me-2">${file.type || ""}</span>
+              <span class="badge bg-light text-secondary me-2">${Utilities.formatFileSize(file.size || 0)}</span>
+              <span class="badge bg-light text-secondary token-badge" data-token-estimate="${tokenEstimate}">${tokenEstimate} tokens</span>
+            </div>
+          </div>
+        </li>
+      `;
+    });
+
+    return html;
+  }
+
   // Set up event listeners
   function setupEventListeners(submitCallback) {
     updateTokenCount();
@@ -170,10 +207,19 @@ const FileSelector = (function () {
     const selectAllBtn = document.getElementById("select-all-btn");
     if (selectAllBtn) {
       selectAllBtn.addEventListener("click", function () {
-        const allCheckboxes = document.querySelectorAll(".file-checkbox, .folder-checkbox");
-        const allChecked = Array.from(allCheckboxes).every((cb) => cb.checked);
+        let checkboxes;
 
-        allCheckboxes.forEach((checkbox) => {
+        if (isSearchActive) {
+          // Only select/deselect search results when search is active
+          checkboxes = document.querySelectorAll(".search-match .file-checkbox");
+        } else {
+          // Select/deselect all files and folders when no search is active
+          checkboxes = document.querySelectorAll(".file-checkbox, .folder-checkbox");
+        }
+
+        const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+
+        checkboxes.forEach((checkbox) => {
           checkbox.checked = !allChecked;
           checkbox.dispatchEvent(new Event("change", { bubbles: true }));
         });
@@ -270,47 +316,63 @@ const FileSelector = (function () {
   function setupSearch() {
     const searchInput = document.getElementById("search-input");
     const searchButton = document.getElementById("search-button");
-    const searchResults = document.getElementById("search-results");
+    const searchStatus = document.getElementById("search-status");
+    const fileSelectionForm = document.getElementById("file-selection-form");
 
-    if (!searchInput || !searchButton || !searchResults) return;
+    if (!searchInput || !searchButton || !searchStatus) return;
 
-    // Search button click
-    searchButton.addEventListener("click", () => performSearch(searchInput.value));
+    // Prevent form submission when pressing Enter in search input
+    searchInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        // Prevent the default form submission
+        event.preventDefault();
 
-    // Enter key in search input
-    searchInput.addEventListener("keyup", function (event) {
-      if (event.key === "Enter") performSearch(this.value);
+        const query = this.value.trim();
+        if (query === "") {
+          // Clear search if input is empty
+          clearSearch();
+        } else {
+          performSearch(query);
+        }
+      }
     });
 
-    // Select found files button
-    const selectFoundButton = document.getElementById("select-found-files");
-    if (selectFoundButton) {
-      selectFoundButton.addEventListener("click", selectFoundFiles);
-    }
+    // Search button click
+    searchButton.addEventListener("click", () => {
+      const query = searchInput.value.trim();
+      if (query === "") {
+        // Clear search if input is empty
+        clearSearch();
+      } else {
+        performSearch(query);
+      }
+    });
 
     // Clear search button
     const clearSearchButton = document.getElementById("clear-search");
     if (clearSearchButton) {
-      clearSearchButton.addEventListener("click", clearSearch);
+      clearSearchButton.addEventListener("click", (event) => {
+        // Prevent form submission
+        event.preventDefault();
+        clearSearch();
+      });
     }
   }
 
   // Perform search on files
   function performSearch(query) {
-    const searchResults = document.getElementById("search-results");
     const searchStats = document.getElementById("search-stats");
+    const searchStatus = document.getElementById("search-status");
+    const rootFolder = document.getElementById("root-folder-contents");
 
-    if (!query || query.trim().length < 3) {
-      alert(query.trim() === "" ? "Please enter a search term" : "Please enter at least 3 characters");
+    if (query.length < 3) {
+      alert("Please enter at least 3 characters for search");
       return;
     }
 
     // Show loading state
-    searchResults.classList.remove("d-none");
+    searchStatus.classList.remove("d-none");
     searchStats.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Searching for "${query}"...`;
-
-    // Clear any previous highlights
-    clearHighlights();
 
     // Create form data and fetch
     const formData = new FormData();
@@ -325,15 +387,25 @@ const FileSelector = (function () {
           return;
         }
 
-        // Store found files
-        searchResults.setAttribute("data-found-files", JSON.stringify(data.matching_files));
+        // Update module state
+        isSearchActive = true;
+        matchingFiles = data.matching_files;
 
-        // Update search stats and highlight matches
+        // Update search stats
         if (data.count > 0) {
           searchStats.innerHTML = `<i class="fas fa-check-circle me-2 text-success"></i> Found "${query}" in ${data.count} file${data.count !== 1 ? "s" : ""}`;
-          highlightMatchingFiles(data.matching_files);
+
+          // Update the tree view to only show matching files
+          rootFolder.innerHTML = renderSearchResults(matchingFiles);
+
+          // Rebind checkbox events
+          setupCheckboxes();
+
+          // Update Select All button text based on current selection state
+          updateSelectAllButton();
         } else {
           searchStats.innerHTML = `<i class="fas fa-info-circle me-2"></i> No files found containing "${query}"`;
+          rootFolder.innerHTML = renderSearchResults([]);
         }
       },
       (error) => {
@@ -343,87 +415,66 @@ const FileSelector = (function () {
     );
   }
 
-  // Highlight matching files in the tree
-  function highlightMatchingFiles(matchingFiles) {
-    matchingFiles.forEach((file) => {
-      const checkbox = document.querySelector(`.file-checkbox[value="${file.path}"]`);
-      if (!checkbox) return;
+  // Update Select All button text based on current selection state
+  function updateSelectAllButton() {
+    const selectAllBtn = document.getElementById("select-all-btn");
+    if (!selectAllBtn) return;
 
-      const fileItem = checkbox.closest(".file-item");
-      fileItem.classList.add("search-match");
+    let checkboxes;
 
-      // Add tooltip with match info
-      const nameElement = fileItem.querySelector(".file-name");
-      if (nameElement) {
-        let tooltipContent = `Found ${file.match_count} match${file.match_count !== 1 ? "es" : ""}`;
-
-        if (file.matching_lines && file.matching_lines.length > 0) {
-          tooltipContent += ":<br>";
-          file.matching_lines.forEach((line) => {
-            tooltipContent += `<small>Line ${line.line_number}: ${line.text}</small><br>`;
-          });
-
-          if (file.match_count > file.matching_lines.length) {
-            tooltipContent += `<small>... and ${file.match_count - file.matching_lines.length} more</small>`;
-          }
-        }
-
-        nameElement.setAttribute("data-bs-toggle", "tooltip");
-        nameElement.setAttribute("data-bs-html", "true");
-        nameElement.setAttribute("title", tooltipContent);
-
-        new bootstrap.Tooltip(nameElement);
-      }
-    });
-  }
-
-  // Clear search highlights and tooltips
-  function clearHighlights() {
-    document.querySelectorAll(".search-match").forEach((el) => el.classList.remove("search-match"));
-
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-      const tooltip = bootstrap.Tooltip.getInstance(el);
-      if (tooltip) tooltip.dispose();
-    });
-  }
-
-  // Select all files found in search
-  function selectFoundFiles() {
-    const searchResults = document.getElementById("search-results");
-    const foundFilesData = searchResults.getAttribute("data-found-files");
-
-    if (!foundFilesData) return;
-
-    try {
-      const foundFiles = JSON.parse(foundFilesData);
-
-      foundFiles.forEach((file) => {
-        const checkbox = document.querySelector(`.file-checkbox[value="${file.path}"]`);
-        if (checkbox && !checkbox.checked) {
-          checkbox.checked = true;
-          if (!selectedFiles.includes(file.path)) selectedFiles.push(file.path);
-        }
-      });
-
-      recalculateTokens();
-    } catch (error) {
-      console.error("Error selecting found files:", error);
+    if (isSearchActive) {
+      // Only check search results when search is active
+      checkboxes = document.querySelectorAll(".search-match .file-checkbox");
+    } else {
+      // Check all files and folders when no search is active
+      checkboxes = document.querySelectorAll(".file-checkbox, .folder-checkbox");
     }
+
+    const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+
+    selectAllBtn.innerHTML = allChecked ? '<i class="fas fa-square me-1"></i> Deselect All' : '<i class="fas fa-check-square me-1"></i> Select All';
   }
 
-  // Clear search results
+  // Clear search results and restore original tree
   function clearSearch() {
     const searchInput = document.getElementById("search-input");
-    const searchResults = document.getElementById("search-results");
+    const searchStatus = document.getElementById("search-status");
+    const rootFolder = document.getElementById("root-folder-contents");
 
     if (searchInput) searchInput.value = "";
 
-    if (searchResults) {
-      searchResults.classList.add("d-none");
-      searchResults.removeAttribute("data-found-files");
+    if (searchStatus) {
+      searchStatus.classList.add("d-none");
     }
 
-    clearHighlights();
+    // Only restore tree if search was active
+    if (isSearchActive) {
+      isSearchActive = false;
+      matchingFiles = [];
+
+      // Restore the original tree
+      rootFolder.innerHTML = renderTree(treeData);
+
+      // Rebind events
+      setupCheckboxes();
+
+      // Rebind folder toggle events
+      document.querySelectorAll(".toggle-icon").forEach((toggle) => {
+        toggle.addEventListener("click", function () {
+          const caretIcon = this.querySelector("i");
+          if (!caretIcon) return;
+
+          if (caretIcon.classList.contains("fa-caret-down")) {
+            caretIcon.classList.replace("fa-caret-down", "fa-caret-right");
+          } else {
+            caretIcon.classList.replace("fa-caret-right", "fa-caret-down");
+          }
+        });
+      });
+
+      // Update Select All button text
+      updateSelectAllButton();
+    }
   }
 
   // Fetch token count for a folder
@@ -489,6 +540,9 @@ const FileSelector = (function () {
     // Update token count
     tokenCount = totalTokens;
     updateTokenCount();
+
+    // Update Select All button to reflect current state
+    updateSelectAllButton();
   }
 
   // Update token count display
