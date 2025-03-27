@@ -82,20 +82,20 @@ const PromptDialog = (function () {
         event.preventDefault();
 
         // Get form values
-        const promptData = {
-          prompt: document.getElementById("prompt-text").value,
-          includeCodingPrompt: document.getElementById("include-coding-prompt").checked,
-          includeDirectoryStructure: document.getElementById("include-directory-structure").checked,
-        };
-
+        const promptText = document.getElementById("prompt-text").value;
+        
         // Validate
-        if (!promptData.prompt.trim()) {
+        if (!promptText.trim()) {
           Utilities.showError("Please enter a prompt before continuing.", "prompt-form", "prompt-error");
           return;
         }
 
-        // Call the submit callback
-        submitCallback(promptData);
+        // Call the submit callback with form data
+        submitCallback({
+          prompt: promptText,
+          includeCodingPrompt: document.getElementById("include-coding-prompt").checked,
+          includeDirectoryStructure: document.getElementById("include-directory-structure").checked,
+        });
       });
     }
   }

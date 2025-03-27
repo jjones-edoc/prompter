@@ -40,87 +40,75 @@ const GenerateDialog = (function () {
    */
   function setupEventListeners(actionCallback) {
     // Toggle prompt visibility
-    const togglePromptBtn = document.getElementById("toggle-prompt-btn");
-    const promptContent = document.getElementById("prompt-content");
-
-    if (togglePromptBtn && promptContent) {
-      togglePromptBtn.addEventListener("click", function () {
-        if (promptContent.classList.contains("d-none")) {
-          // Show the prompt
-          promptContent.classList.remove("d-none");
-          this.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide Prompt';
-        } else {
-          // Hide the prompt
-          promptContent.classList.add("d-none");
-          this.innerHTML = '<i class="fas fa-eye me-1"></i> Show Prompt';
-        }
-      });
-    }
+    Utilities.setupButtonListener("toggle-prompt-btn", function () {
+      const promptContent = document.getElementById("prompt-content");
+      if (promptContent.classList.contains("d-none")) {
+        // Show the prompt
+        promptContent.classList.remove("d-none");
+        this.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide Prompt';
+      } else {
+        // Hide the prompt
+        promptContent.classList.add("d-none");
+        this.innerHTML = '<i class="fas fa-eye me-1"></i> Show Prompt';
+      }
+    });
 
     // Copy to clipboard
-    const copyButton = document.getElementById("copy-button");
-    if (copyButton && promptContent) {
-      copyButton.addEventListener("click", function () {
-        // Save current visibility state
-        const wasHidden = promptContent.classList.contains("d-none");
+    Utilities.setupButtonListener("copy-button", function () {
+      const promptContent = document.getElementById("prompt-content");
+      // Save current visibility state
+      const wasHidden = promptContent.classList.contains("d-none");
 
-        // If hidden, temporarily show it to allow selection
-        if (wasHidden) {
-          promptContent.classList.remove("d-none");
+      // If hidden, temporarily show it to allow selection
+      if (wasHidden) {
+        promptContent.classList.remove("d-none");
+      }
+
+      const copyStatus = document.getElementById("copy-status");
+
+      Utilities.copyToClipboard(
+        promptContent.value,
+        () => {
+          copyStatus.textContent = "Copied to clipboard!";
+          copyStatus.classList.remove("d-none", "alert-danger");
+          copyStatus.classList.add("alert-success");
+
+          // Clear the status after 3 seconds
+          setTimeout(function () {
+            copyStatus.classList.add("d-none");
+          }, 3000);
+        },
+        (err) => {
+          copyStatus.textContent = "Copy failed: " + err;
+          copyStatus.classList.remove("d-none", "alert-success");
+          copyStatus.classList.add("alert-danger");
         }
+      );
 
-        const copyStatus = document.getElementById("copy-status");
+      // If it was hidden, hide it again
+      if (wasHidden) {
+        promptContent.classList.add("d-none");
+      }
 
-        Utilities.copyToClipboard(
-          promptContent.value,
-          () => {
-            copyStatus.textContent = "Copied to clipboard!";
-            copyStatus.classList.remove("d-none", "alert-danger");
-            copyStatus.classList.add("alert-success");
-
-            // Clear the status after 3 seconds
-            setTimeout(function () {
-              copyStatus.classList.add("d-none");
-            }, 3000);
-          },
-          (err) => {
-            copyStatus.textContent = "Copy failed: " + err;
-            copyStatus.classList.remove("d-none", "alert-success");
-            copyStatus.classList.add("alert-danger");
-          }
-        );
-
-        // If it was hidden, hide it again
-        if (wasHidden) {
-          promptContent.classList.add("d-none");
-        }
-
-        // Notify parent that copy action was performed
-        if (actionCallback) {
-          actionCallback("copy");
-        }
-      });
-    }
+      // Notify parent that copy action was performed
+      if (actionCallback) {
+        actionCallback("copy");
+      }
+    });
 
     // Back button
-    const backButton = document.getElementById("back-button");
-    if (backButton) {
-      backButton.addEventListener("click", function () {
-        if (actionCallback) {
-          actionCallback("back");
-        }
-      });
-    }
+    Utilities.setupButtonListener("back-button", function () {
+      if (actionCallback) {
+        actionCallback("back");
+      }
+    });
 
     // Restart button
-    const restartButton = document.getElementById("restart-button");
-    if (restartButton) {
-      restartButton.addEventListener("click", function () {
-        if (actionCallback) {
-          actionCallback("restart");
-        }
-      });
-    }
+    Utilities.setupButtonListener("restart-button", function () {
+      if (actionCallback) {
+        actionCallback("restart");
+      }
+    });
   }
 
 
