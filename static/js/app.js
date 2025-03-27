@@ -60,6 +60,16 @@ const App = (function () {
   }
 
   /**
+   * Show the response dialog
+   * @param {string} claudeResponse - Claude's response text (optional)
+   */
+  function showResponseDialog(claudeResponse = "") {
+    const mainContent = document.getElementById("main-content");
+    mainContent.innerHTML = ResponseDialog.render(claudeResponse);
+    ResponseDialog.setupEventListeners(handleResponseActions);
+  }
+
+  /**
    * Fetch directory structure from the server
    */
   function fetchDirectoryStructure() {
@@ -111,6 +121,7 @@ const App = (function () {
         if (data.error) {
           throw new Error(data.error);
         }
+        console.log("File content received:", data.combined_content ? "Content received successfully" : "No content received");
         return data;
       },
       (error) => {
@@ -158,13 +169,8 @@ const App = (function () {
     switch (action) {
       case "copy":
         // Copy to clipboard functionality is handled in the GenerateDialog module
-        break;
-
-      case "process":
-        // Logic for processing Claude's response
-        if (data && data.claudeResponse) {
-          processClaudeResponse(data.claudeResponse);
-        }
+        // After copying, navigate to the response dialog
+        showResponseDialog();
         break;
 
       case "back":
@@ -181,6 +187,27 @@ const App = (function () {
   }
 
   /**
+   * Handle actions from the response dialog
+   * @param {string} action - The action to perform
+   * @param {Object} data - Additional data for the action
+   */
+  function handleResponseActions(action, data) {
+    switch (action) {
+      case "process":
+        // Logic for processing Claude's response
+        if (data && data.claudeResponse) {
+          processClaudeResponse(data.claudeResponse);
+        }
+        break;
+
+      case "done":
+        // Go back to generate dialog
+        showGenerateDialog();
+        break;
+    }
+  }
+
+  /**
    * Process Claude's response
    * @param {string} response - Claude's response text
    */
@@ -189,10 +216,10 @@ const App = (function () {
     const resultsContainer = document.getElementById("process-results");
     if (resultsContainer) {
       resultsContainer.innerHTML = `
-            <div class="alert alert-info">
-              <i class="fas fa-spinner fa-spin me-2"></i> Processing response...
-            </div>
-          `;
+        <div class="alert alert-info">
+          <i class="fas fa-spinner fa-spin me-2"></i> Processing response...
+        </div>
+      `;
     }
 
     // Send to backend for processing
@@ -209,11 +236,17 @@ const App = (function () {
       },
       (data) => {
         // Update UI with results
-        GenerateDialog.updateProcessingResults(data);
+        ResponseDialog.updateProcessingResults(data);
       },
       (error) => {
         console.error("Error processing response:", error);
-        GenerateDialog.showError("Error processing response: " + error.message);
+        if (resultsContainer) {
+          resultsContainer.innerHTML = `
+          <div class="alert alert-danger">
+            <strong>Error:</strong> ${error.message || "Failed to process response"}
+          </div>
+        `;
+        }
       }
     );
   }
@@ -238,5 +271,6 @@ const App = (function () {
     showPromptDialog: showPromptDialog,
     showFileSelector: showFileSelector,
     showGenerateDialog: showGenerateDialog,
+    showResponseDialog: showResponseDialog,
   };
 })();
