@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
 import tempfile
 import shutil
 
@@ -12,38 +12,56 @@ class FileEditor:
         # Resolve root dir immediately
         self.root_dir = Path(root_dir).resolve()
 
-    def validate_edit(self, file_path: str, search_text: str) -> Tuple[bool, Optional[str]]:
+    def validate_edit(self, file_path: str, search_text: str) -> Tuple[bool, Optional[str], Optional[Dict]]:
         """
         Validate if a search pattern exists in a file without modifying it.
+        Returns enhanced error information for better reporting.
 
         Args:
             file_path: Path to the file to check
             search_text: Text to find (empty or #ENTIRE_FILE is always valid)
 
         Returns:
-            Tuple of (is_valid, error_message)
+            Tuple of (is_valid, error_message, error_details)
+            where error_details is a dictionary with additional context
         """
         try:
             # Convert to absolute path relative to root
             full_path = (self.root_dir / file_path).resolve()
+            error_details = None
 
             # Validate file location
             if not self._is_safe_path(full_path):
-                return False, f"File path {file_path} is outside root directory"
+                error_details = {
+                    'type': 'validation_error',
+                    'file': file_path,
+                    'message': f"File path {file_path} is outside root directory"
+                }
+                return False, error_details['message'], error_details
 
             # Special cases that are always valid
             if not search_text.strip() or search_text.strip() == "#ENTIRE_FILE":
-                return True, None
+                return True, None, None
 
             # File must exist for non-empty search text
             if not full_path.exists():
-                return False, f"Cannot find search text in non-existent file: {file_path}"
+                error_details = {
+                    'type': 'validation_error',
+                    'file': file_path,
+                    'message': f"Cannot find search text in non-existent file: {file_path}"
+                }
+                return False, error_details['message'], error_details
 
             # Read file content
             try:
                 content = self._read_file(full_path)
             except UnicodeDecodeError:
-                return False, f"Unable to read {file_path} - file may be binary or use unknown encoding"
+                error_details = {
+                    'type': 'validation_error',
+                    'file': file_path,
+                    'message': f"Unable to read {file_path} - file may be binary or use unknown encoding"
+                }
+                return False, error_details['message'], error_details
 
             # Normalize line endings for comparison
             content = content.replace('\r\n', '\n')
@@ -51,12 +69,28 @@ class FileEditor:
 
             # Check if search text exists in content
             if search_text not in content:
-                return False, f"Could not find exact match for search text in {file_path}"
+                # Create search preview for error context
+                search_preview = search_text[:50] + \
+                    "..." if len(search_text) > 50 else search_text
+                search_preview = search_preview.replace('\n', '\\n')
 
-            return True, None
+                error_details = {
+                    'type': 'validation_error',
+                    'file': file_path,
+                    'message': f"Could not find exact match for search text in {file_path}",
+                    'search_preview': search_preview
+                }
+                return False, error_details['message'], error_details
+
+            return True, None, None
 
         except Exception as e:
-            return False, str(e)
+            error_details = {
+                'type': 'validation_exception',
+                'file': file_path,
+                'message': str(e)
+            }
+            return False, str(e), error_details
 
     def validate_move(self, source_path: str, dest_path: str) -> Tuple[bool, Optional[str]]:
         """

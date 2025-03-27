@@ -192,6 +192,7 @@ class ClaudeResponseProcessor:
     def _validate_file_blocks(self, file_path: str, blocks: List[EditBlock]) -> List[Dict]:
         """
         Validate all search blocks for a file before applying any changes.
+        Uses enhanced validation results from FileEditor.
 
         Args:
             file_path: Path to the file
@@ -204,25 +205,26 @@ class ClaudeResponseProcessor:
 
         for i, block in enumerate(blocks):
             try:
-                is_valid, error_msg = self.file_editor.validate_edit(
+                is_valid, error_msg, error_details = self.file_editor.validate_edit(
                     block.file_path,
                     block.search_text
                 )
 
                 if not is_valid:
-                    # Extract the first 50 chars of search text for error context
-                    search_preview = block.search_text[:50] + "..." if len(
-                        block.search_text) > 50 else block.search_text
-                    search_preview = search_preview.replace('\n', '\\n')
-
-                    validation_errors.append({
-                        'type': 'validation_error',
-                        'file': block.file_path,
-                        'message': error_msg,
-                        'line': block.line_number,
-                        'block_index': i,
-                        'search_preview': search_preview
-                    })
+                    if error_details:
+                        # Use the rich error details from validate_edit
+                        error_details['line'] = block.line_number
+                        error_details['block_index'] = i
+                        validation_errors.append(error_details)
+                    else:
+                        # Fallback in case error_details is None
+                        validation_errors.append({
+                            'type': 'validation_error',
+                            'file': block.file_path,
+                            'message': error_msg,
+                            'line': block.line_number,
+                            'block_index': i
+                        })
             except Exception as e:
                 validation_errors.append({
                     'type': 'validation_exception',
