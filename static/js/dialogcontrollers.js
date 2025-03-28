@@ -61,8 +61,9 @@ const DialogControllers = (function () {
 
     PromptDialog.setupEventListeners({
       onSubmit: function (promptData) {
+        console.log("Prompt data submitted:", promptData);
         // Update state with prompt data
-        StateManager.updateDialogState("prompt", {
+        StateManager.updateDialogState("promptDialog", {
           userPrompt: promptData.prompt,
           includeCodingPrompt: promptData.includeCodingPrompt,
           includeDirectoryStructure: promptData.includeDirectoryStructure,
