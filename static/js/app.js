@@ -7,6 +7,8 @@ const App = (function () {
    * Initialize the application
    */
   function init() {
+    // Update default dialog to generate
+    StateManager.setCurrentDialog("generate");
     renderCurrentDialog();
   }
 

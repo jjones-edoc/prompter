@@ -9,6 +9,8 @@ const DialogControllers = (function () {
    * @returns {Object} Standard callback object with custom overrides
    */
   function createFileSelectorCallbacks(customCallbacks = {}) {
+    const state = StateManager.getState();
+
     // Default callbacks
     const defaultCallbacks = {
       onSubmit: function (fileData) {
@@ -19,13 +21,39 @@ const DialogControllers = (function () {
           tokenCount: fileData.tokenCount,
         });
 
-        // Transition to generate dialog
+        const editingElementIndex = state.fileSelectorState.editingElementIndex;
+
+        // Check if we're editing an existing files element
+        if (editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
+          // Update existing element
+          StateManager.updatePromptElement(editingElementIndex, {
+            files: fileData.files,
+            folders: fileData.folders,
+            tokenCount: fileData.tokenCount,
+          });
+        } else {
+          // Add new files element
+          StateManager.addPromptElement({
+            type: "selectedFiles",
+            id: `selectedFiles-${Date.now()}`,
+            files: fileData.files,
+            folders: fileData.folders,
+            tokenCount: fileData.tokenCount,
+          });
+        }
+
+        // Reset editing state
+        StateManager.updateDialogState("fileSelector", {
+          editingElementIndex: null,
+        });
+
+        // Go back to generate dialog
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
       },
       onBack: function () {
-        // Go back to prompt dialog
-        StateManager.setCurrentDialog("prompt");
+        // Go back to generate dialog without saving changes
+        StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
       },
       onSelectionChange: function (selectionData) {
@@ -61,15 +89,36 @@ const DialogControllers = (function () {
 
     PromptDialog.setupEventListeners({
       onSubmit: function (promptData) {
-        // Update state with prompt data
+        const editingElementIndex = state.promptDialogState.editingElementIndex;
+
+        // Check if we're editing an existing prompt element
+        if (editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
+          // Update existing element
+          StateManager.updatePromptElement(editingElementIndex, {
+            content: promptData.prompt,
+          });
+        } else {
+          // Add new user prompt element
+          StateManager.addPromptElement({
+            type: "userPrompt",
+            id: `userPrompt-${Date.now()}`,
+            content: promptData.prompt,
+          });
+        }
+
+        // Reset editing state
         StateManager.updateDialogState("promptDialog", {
-          userPrompt: promptData.prompt,
-          includeCodingPrompt: promptData.includeCodingPrompt,
-          includeDirectoryStructure: promptData.includeDirectoryStructure,
+          editingElementIndex: null,
         });
 
-        // Transition to file selector
-        StateManager.setCurrentDialog("fileSelector");
+        // Go back to generate dialog
+        StateManager.setCurrentDialog("generate");
+        renderCurrentDialog();
+      },
+
+      onCancel: function () {
+        // Go back to generate dialog without saving changes
+        StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
       },
     });
@@ -83,12 +132,36 @@ const DialogControllers = (function () {
 
     // If directory structure not loaded yet, fetch it first
     if (!state.fileSelectorState.directoryStructure) {
+      // Show loading state in the UI
+      const mainContent = document.getElementById("main-content");
+      mainContent.innerHTML = `
+      <div class="card shadow-sm mb-4">
+        <div class="card-header card-header-themed">
+          <h2 class="h4 mb-0">Select Files for Your Prompt</h2>
+        </div>
+        <div class="card-body">
+          <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin me-2"></i> Loading file structure...
+          </div>
+        </div>
+      </div>
+    `;
+
+      // Using the correct API method to load the complete directory tree
       ApiService.fetchDirectoryStructure().then((data) => {
+        if (data.error) {
+          Utilities.showSnackBar(`Error: ${data.error}`, "error");
+          return;
+        }
+
+        // Save the directory structure to state
         StateManager.updateDialogState("fileSelector", { directoryStructure: data });
 
+        // Now render the file selector with the loaded data
         const mainContent = document.getElementById("main-content");
         mainContent.innerHTML = FileSelector.render(state.fileSelectorState);
 
+        // Set up event listeners for user interaction
         FileSelector.setupEventListeners(createFileSelectorCallbacks());
       });
     } else {
@@ -125,6 +198,7 @@ const DialogControllers = (function () {
         });
       } else {
         // Store search results in state
+        // Adjust property names to match the API response
         StateManager.updateDialogState("fileSelector", {
           searchResults: {
             query: query,
@@ -197,71 +271,268 @@ const DialogControllers = (function () {
    */
   function renderGenerateDialog() {
     const state = StateManager.getState();
+    const mainContent = document.getElementById("main-content");
 
-    // If generated content not created yet, generate it first
-    if (!state.generateDialogState.generatedContent) {
-      const options = {
-        selectedFiles: state.fileSelectorState.selectedFiles,
-        selectedFolders: state.fileSelectorState.selectedFolders,
-        userPrompt: state.promptDialogState.userPrompt,
-        includeCodingPrompt: state.promptDialogState.includeCodingPrompt,
-        includeDirectoryStructure: state.promptDialogState.includeDirectoryStructure,
-      };
+    // Render the dialog with current state
+    mainContent.innerHTML = GenerateDialog.render(state.generateDialogState);
 
-      ApiService.generateCombinedContent(options).then((data) => {
-        StateManager.updateDialogState("generate", {
-          generatedContent: data.combined_content,
-        });
+    // Set up event listeners with callbacks
+    GenerateDialog.setupEventListeners({
+      // Add a new element to the prompt
+      onAddElement: function (element) {
+        StateManager.addPromptElement(element);
 
-        const mainContent = document.getElementById("main-content");
-        mainContent.innerHTML = GenerateDialog.render(state.generateDialogState);
-
-        document.getElementById("prompt-content").value = data.combined_content;
-
-        GenerateDialog.setupEventListeners({
-          onBack: function () {
-            // Go back to file selection
-            StateManager.setCurrentDialog("fileSelector");
-            renderCurrentDialog();
-          },
-          onRestart: function () {
-            // Clear state and go back to prompt dialog
-            StateManager.resetState();
-            StateManager.setCurrentDialog("prompt");
-            renderCurrentDialog();
-          },
-          onCopy: function () {
-            // After copying, navigate to the response dialog
-            StateManager.setCurrentDialog("response");
-            renderCurrentDialog();
-          },
-        });
-      });
-    } else {
-      // Generated content already exists
-      const mainContent = document.getElementById("main-content");
-      mainContent.innerHTML = GenerateDialog.render(state.generateDialogState);
-
-      document.getElementById("prompt-content").value = state.generateDialogState.generatedContent;
-
-      GenerateDialog.setupEventListeners({
-        onBack: function () {
-          // Go back to file selection
-          StateManager.setCurrentDialog("fileSelector");
-          renderCurrentDialog();
-        },
-        onRestart: function () {
-          // Clear state and go back to prompt dialog
-          StateManager.resetState();
+        // If it's a user prompt element, go to prompt dialog to edit it
+        if (element.type === "userPrompt") {
           StateManager.setCurrentDialog("prompt");
           renderCurrentDialog();
-        },
-        onCopy: function () {
-          // After copying, navigate to the response dialog
-          StateManager.setCurrentDialog("response");
+        }
+        // If it's a file selection element, go to file selector dialog
+        else if (element.type === "selectedFiles") {
+          StateManager.setCurrentDialog("fileSelector");
           renderCurrentDialog();
-        },
+        } else {
+          // For other element types, just re-render
+          renderGenerateDialog();
+        }
+      },
+
+      // Remove element from prompt
+      onRemoveElement: function (index) {
+        StateManager.removePromptElement(index);
+        renderGenerateDialog();
+      },
+
+      // Edit an existing element
+      onEditElement: function (index) {
+        const elements = state.generateDialogState.promptElements;
+        if (index >= 0 && index < elements.length) {
+          const element = elements[index];
+
+          // Handle each element type differently
+          if (element.type === "userPrompt") {
+            // Go to prompt dialog to edit user prompt
+            StateManager.updateDialogState("promptDialog", {
+              userPrompt: element.content || "",
+              editingElementIndex: index,
+            });
+            StateManager.setCurrentDialog("prompt");
+            renderCurrentDialog();
+          } else if (element.type === "selectedFiles") {
+            // Go to file selector dialog to edit selected files
+            // First update file selector state with current selections
+            StateManager.updateDialogState("fileSelector", {
+              selectedFiles: element.files || [],
+              selectedFolders: element.folders || [],
+              editingElementIndex: index,
+            });
+            StateManager.setCurrentDialog("fileSelector");
+            renderCurrentDialog();
+          } else {
+            // Other element types don't need editing for now
+            Utilities.showSnackBar(`No editor available for ${element.type} elements`, "info");
+          }
+        }
+      },
+
+      // Move element position
+      onMoveElement: function (oldIndex, newIndex) {
+        StateManager.reorderPromptElements(oldIndex, newIndex);
+        renderGenerateDialog();
+      },
+
+      // Generate the final prompt
+      onGeneratePrompt: function () {
+        generatePromptContent();
+      },
+
+      // Go to prompt dialog to edit user prompt
+      onEditPrompt: function () {
+        // Find if there's an existing user prompt element
+        const elements = state.generateDialogState.promptElements;
+        let userPromptIndex = elements.findIndex((el) => el.type === "userPrompt");
+
+        if (userPromptIndex >= 0) {
+          // Edit existing prompt element
+          StateManager.updateDialogState("promptDialog", {
+            userPrompt: elements[userPromptIndex].content || "",
+            editingElementIndex: userPromptIndex,
+          });
+        } else {
+          // Create new prompt element
+          StateManager.updateDialogState("promptDialog", {
+            userPrompt: "",
+            editingElementIndex: -1,
+          });
+        }
+
+        StateManager.setCurrentDialog("prompt");
+        renderCurrentDialog();
+      },
+
+      // Go to file selector
+      onSelectFiles: function () {
+        // Find if there's an existing files element
+        const elements = state.generateDialogState.promptElements;
+        let filesElementIndex = elements.findIndex((el) => el.type === "selectedFiles");
+
+        if (filesElementIndex >= 0) {
+          // Edit existing files element
+          StateManager.updateDialogState("fileSelector", {
+            selectedFiles: elements[filesElementIndex].files || [],
+            selectedFolders: elements[filesElementIndex].folders || [],
+            editingElementIndex: filesElementIndex,
+          });
+        } else {
+          // Create new files element
+          StateManager.updateDialogState("fileSelector", {
+            selectedFiles: [],
+            selectedFolders: [],
+            editingElementIndex: -1,
+          });
+        }
+
+        StateManager.setCurrentDialog("fileSelector");
+        renderCurrentDialog();
+      },
+
+      // Go to response dialog
+      onGoToResponse: function () {
+        StateManager.setCurrentDialog("response");
+        renderCurrentDialog();
+      },
+
+      // Copy prompt to clipboard
+      onCopy: function () {
+        // After copying, navigate to the response dialog
+        StateManager.setCurrentDialog("response");
+        renderCurrentDialog();
+      },
+
+      // Restart the process
+      onRestart: function () {
+        // Clear state and stay on generate dialog
+        StateManager.resetState();
+        renderCurrentDialog();
+      },
+    });
+
+    // If we have generated content, populate the textarea
+    if (state.generateDialogState.generatedContent) {
+      const promptContent = document.getElementById("prompt-content");
+      if (promptContent) {
+        promptContent.value = state.generateDialogState.generatedContent;
+      }
+    }
+  }
+
+  /**
+   * Generate prompt content based on the current elements
+   */
+  function generatePromptContent() {
+    const state = StateManager.getState();
+    const elements = state.generateDialogState.promptElements;
+
+    if (!elements || elements.length === 0) {
+      Utilities.showSnackBar("Please add at least one element to generate a prompt", "warning");
+      return;
+    }
+
+    // Show loading snackbar
+    Utilities.showSnackBar("Generating prompt...", "info");
+
+    // Determine what to include in API call based on elements
+    let userPrompt = "";
+    let selectedFiles = [];
+    let selectedFolders = [];
+    let includePlanningPrompt = false;
+    let includeEditingPrompt = false;
+    let includeDirectoryStructure = false;
+
+    elements.forEach((element) => {
+      switch (element.type) {
+        case "userPrompt":
+          userPrompt = element.content || "";
+          break;
+        case "selectedFiles":
+          selectedFiles = element.files || [];
+          selectedFolders = element.folders || [];
+          break;
+        case "codingPrompt":
+          // For backward compatibility - the "codingPrompt" element type maps to
+          // both planning and editing prompts in the new modular approach
+          includePlanningPrompt = true;
+          includeEditingPrompt = true;
+          break;
+        case "planningPrompt":
+          includePlanningPrompt = true;
+          break;
+        case "editingPrompt":
+          includeEditingPrompt = true;
+          break;
+        case "directoryStructure":
+          includeDirectoryStructure = true;
+          break;
+      }
+    });
+
+    const options = {
+      selectedFiles: selectedFiles,
+      selectedFolders: selectedFolders,
+      userPrompt: userPrompt,
+      includePlanningPrompt: includePlanningPrompt,
+      includeEditingPrompt: includeEditingPrompt,
+      includeDirectoryStructure: includeDirectoryStructure,
+    };
+
+    // Check if we want to use the old endpoint (for backward compatibility)
+    // or the new modular endpoints
+    const useModularEndpoints = true; // Set to true to use new endpoints, false to use old endpoint
+
+    // Function to handle API response
+    const handleGeneratedContent = (data) => {
+      if (data.error) {
+        Utilities.showSnackBar("Error generating prompt: " + data.error, "error");
+        return;
+      }
+
+      // Update state with generated content
+      StateManager.updateDialogState("generate", {
+        generatedContent: data.combined_content,
       });
+
+      // Update textarea
+      const promptContent = document.getElementById("prompt-content");
+      if (promptContent) {
+        promptContent.value = data.combined_content;
+
+        // Show the textarea
+        promptContent.classList.remove("d-none");
+
+        // Update show/hide button text
+        const toggleBtn = document.getElementById("toggle-prompt-btn");
+        if (toggleBtn) {
+          toggleBtn.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide';
+        }
+      }
+
+      // Show success snackbar
+      Utilities.showSnackBar("Prompt generated successfully!", "success");
+    };
+
+    // Call API to generate content using either the modular approach or traditional approach
+    if (useModularEndpoints) {
+      ApiService.generateModularContent(options).then(handleGeneratedContent);
+    } else {
+      // For backward compatibility - convert options back to the old format expected by generateCombinedContent
+      const oldOptions = {
+        selectedFiles: selectedFiles,
+        selectedFolders: selectedFolders,
+        userPrompt: userPrompt,
+        includeCodingPrompt: includePlanningPrompt || includeEditingPrompt,
+        includeDirectoryStructure: includeDirectoryStructure,
+      };
+      ApiService.generateCombinedContent(oldOptions).then(handleGeneratedContent);
     }
   }
 
@@ -316,5 +587,6 @@ const DialogControllers = (function () {
     clearSearch,
     updateFolderTokenCount,
     processClaudeResponse,
+    generatePromptContent,
   };
 })();

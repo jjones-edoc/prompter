@@ -1,143 +1,373 @@
 /**
- * Handles all API interactions for the application
+ * API Service
+ * Handles all communication with the backend API
  */
 const ApiService = (function () {
   /**
-   * Fetch the complete directory structure
-   * @returns {Promise} Promise that resolves to directory structure data
+   * Fetch directory structure from the server
+   * @returns {Promise} Promise resolving to directory structure data
    */
   function fetchDirectoryStructure() {
-    return Utilities.fetchJSON(
-      "/api/get_complete_folder_tree",
-      {
-        method: "POST",
-        body: new FormData(),
+    // Using the correct endpoint from routes.py: /api/get_complete_folder_tree
+    // This will get all nested directories and files in one request
+    return fetch("/api/get_complete_folder_tree", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      (data) => data,
-      (error) => {
+      body: new URLSearchParams({
+        root_path: "", // Empty string for root directory
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // The response is already in the format expected by the FileSelector
+        return data;
+      })
+      .catch((error) => {
         console.error("Error fetching directory structure:", error);
-        Utilities.showSnackBar("Failed to load directory structure. Please try again.", "error");
-      }
-    );
+        return { error: "Failed to load directory structure." };
+      });
   }
 
   /**
-   * Fetch token count for a folder
-   * @param {string} folderPath - Path of folder to get token count for
-   * @returns {Promise} Promise that resolves to token count data
+   * Fetch directory structure from the server specifically for prompt generation
+   * This is different from fetchDirectoryStructure() which is used for file selection
+   * @returns {Promise} Promise resolving to directory structure data for prompt generation
    */
-  function fetchFolderTokenCount(folderPath) {
-    const formData = new FormData();
-    formData.append("folder_path", folderPath);
-
-    return Utilities.fetchJSON(
-      "/api/get_folder_token_count",
-      { method: "POST", body: formData },
-      (data) => data,
-      (error) => {
-        console.error("Error fetching folder token count:", error);
-        return { error: error.message || "Failed to fetch token count" };
-      }
-    );
+  function fetchDirectoryStructureForPrompt() {
+    // For complete directory tree, we should use get_complete_folder_tree endpoint
+    return fetch("/api/get_complete_folder_tree", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        root_path: "", // Empty string for root directory
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // Convert the tree format to the string format expected by the prompt
+        return formatDirectoryStructure(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching directory structure for prompt:", error);
+        return { error: "Failed to load directory structure for prompt." };
+      });
   }
 
   /**
-   * Search files by query
-   * @param {string} query - Search query
-   * @returns {Promise} Promise that resolves to search results
+   * Format directory structure into a string representation
+   * @param {Object} tree - Directory tree structure
+   * @param {string} indent - Current indentation level
+   * @returns {string} Formatted directory structure
    */
-  function searchFiles(query) {
-    const formData = new FormData();
-    formData.append("search_query", query);
+  function formatDirectoryStructure(tree, indent = "") {
+    let result = `${indent}${tree.name}/\n`;
 
-    return Utilities.fetchJSON(
-      "/api/search_files",
-      { method: "POST", body: formData },
-      (data) => data,
-      (error) => {
-        console.error("Error searching files:", error);
-        return {
-          error: error.message || "Unknown error occurred",
-          query: query,
-        };
-      }
-    );
+    // Add all directories
+    if (tree.dirs && tree.dirs.length > 0) {
+      tree.dirs.forEach((dir) => {
+        result += formatDirectoryStructure(dir, indent + "  ");
+      });
+    }
+
+    // Add all files
+    if (tree.files && tree.files.length > 0) {
+      tree.files.forEach((file) => {
+        result += `${indent}  ${file.name}\n`;
+      });
+    }
+
+    return result;
   }
 
   /**
-   * Generate combined content for prompt
-   * @param {Object} options - Generation options
-   * @returns {Promise} Promise that resolves to generated content
+   * Fetch file data from the server
+   * @param {Object} options - Options for generating content
+   * @returns {Promise} Promise resolving to file data
+   */
+  function fetchFileData(options) {
+    const formData = new FormData();
+
+    // Add selected files
+    if (options.selectedFiles && options.selectedFiles.length > 0) {
+      options.selectedFiles.forEach((file) => {
+        formData.append("selected_files", file);
+      });
+    }
+
+    // Add selected folders
+    if (options.selectedFolders && options.selectedFolders.length > 0) {
+      options.selectedFolders.forEach((folder) => {
+        formData.append("selected_folder", folder);
+      });
+    }
+
+    return fetch("/api/file-data", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .catch((error) => {
+        console.error("Error fetching file data:", error);
+        return { error: "Failed to load file data." };
+      });
+  }
+
+  /**
+   * Fetch planning prompt from the server
+   * @returns {Promise} Promise resolving to planning prompt
+   */
+  function fetchPlanningPrompt() {
+    return fetch("/api/planning-prompt")
+      .then((response) => response.json())
+      .catch((error) => {
+        console.error("Error fetching planning prompt:", error);
+        return { error: "Failed to load planning prompt." };
+      });
+  }
+
+  /**
+   * Fetch editing prompt from the server
+   * @returns {Promise} Promise resolving to editing prompt
+   */
+  function fetchEditingPrompt() {
+    return fetch("/api/editing-prompt")
+      .then((response) => response.json())
+      .catch((error) => {
+        console.error("Error fetching editing prompt:", error);
+        return { error: "Failed to load editing prompt." };
+      });
+  }
+
+  /**
+   * Generate combined content from selected files and options
+   * @param {Object} options - Options for generating content
+   * @returns {Promise} Promise resolving to combined content
    */
   function generateCombinedContent(options) {
     const formData = new FormData();
 
     // Add selected files
-    options.selectedFiles.forEach((file) => {
-      formData.append("selected_files", file);
-    });
+    if (options.selectedFiles && options.selectedFiles.length > 0) {
+      options.selectedFiles.forEach((file) => {
+        formData.append("selected_files", file);
+      });
+    }
 
     // Add selected folders
-    options.selectedFolders.forEach((folder) => {
-      formData.append("selected_folder", folder);
-    });
+    if (options.selectedFolders && options.selectedFolders.length > 0) {
+      options.selectedFolders.forEach((folder) => {
+        formData.append("selected_folder", folder);
+      });
+    }
 
-    // Add prompt options
-    formData.append("user_prompt", options.userPrompt);
+    // Add user prompt
+    formData.append("user_prompt", options.userPrompt || "");
+
+    // Add checkbox options
     formData.append("include_coding_prompt", options.includeCodingPrompt ? "1" : "0");
     formData.append("include_directory_structure", options.includeDirectoryStructure ? "1" : "0");
 
-    return Utilities.fetchJSON(
-      "/api/generate",
-      {
-        method: "POST",
-        body: formData,
-      },
-      (data) => {
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        return data;
-      },
-      (error) => {
+    return fetch("/api/generate", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .catch((error) => {
         console.error("Error generating content:", error);
-        Utilities.showSnackBar("Failed to generate content. Please try again.", "error");
-        return { error: error.message || "Failed to generate content" };
+        return { error: "Failed to generate content." };
+      });
+  }
+
+  /**
+   * Generate content using the new modular endpoints
+   * @param {Object} options - Options for generating content
+   * @returns {Promise} Promise resolving to combined content
+   */
+  function generateModularContent(options) {
+    // Create an array to hold all our promises
+    const promises = [];
+    let promiseResults = {};
+
+    // Add promises for the elements we need
+    if (options.includePlanningPrompt) {
+      promises.push(
+        fetchPlanningPrompt().then((data) => {
+          promiseResults.planningPrompt = data.planning_prompt || "";
+          return data;
+        })
+      );
+    }
+
+    if (options.includeEditingPrompt) {
+      promises.push(
+        fetchEditingPrompt().then((data) => {
+          promiseResults.editingPrompt = data.editing_prompt || "";
+          return data;
+        })
+      );
+    }
+
+    if (options.includeDirectoryStructure) {
+      promises.push(
+        fetchDirectoryStructureForPrompt().then((directoryStructure) => {
+          promiseResults.directoryStructure = directoryStructure;
+          return directoryStructure;
+        })
+      );
+    }
+
+    // Only fetch file data if we have files or folders
+    if ((options.selectedFiles && options.selectedFiles.length > 0) || (options.selectedFolders && options.selectedFolders.length > 0)) {
+      const formData = new FormData();
+
+      // Add selected files
+      if (options.selectedFiles && options.selectedFiles.length > 0) {
+        options.selectedFiles.forEach((file) => {
+          formData.append("selected_files", file);
+        });
       }
-    );
+
+      // Add selected folders
+      if (options.selectedFolders && options.selectedFolders.length > 0) {
+        options.selectedFolders.forEach((folder) => {
+          formData.append("selected_folder", folder);
+        });
+      }
+
+      promises.push(
+        fetch("/api/file-data", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            promiseResults.fileData = data.files || [];
+            return data;
+          })
+      );
+    }
+
+    // Wait for all promises to resolve
+    return Promise.all(promises)
+      .then(() => {
+        // Construct the combined content
+        let combinedContent = "";
+
+        // Add planning prompt if requested
+        if (options.includePlanningPrompt && promiseResults.planningPrompt) {
+          combinedContent += promiseResults.planningPrompt + "\n\n";
+        }
+
+        // Add editing prompt if requested
+        if (options.includeEditingPrompt && promiseResults.editingPrompt) {
+          combinedContent += promiseResults.editingPrompt + "\n\n";
+        }
+
+        // Add directory structure if requested
+        if (options.includeDirectoryStructure && promiseResults.directoryStructure) {
+          combinedContent += "### Project Structure:\n\n```\n";
+          combinedContent += promiseResults.directoryStructure;
+          combinedContent += "\n```\n\n";
+        }
+
+        // Add file data if available
+        if (promiseResults.fileData && promiseResults.fileData.length > 0) {
+          combinedContent += "### List of files:\n\n";
+          promiseResults.fileData.forEach((file) => {
+            combinedContent += `File: ${file.path}\n\`\`\`${file.language}\n${file.content}\n\`\`\`\n\n`;
+          });
+        }
+
+        // Add user prompt at the end
+        combinedContent += `### User Query:\n\n${options.userPrompt || ""}`;
+
+        // Return the combined content
+        return {
+          combined_content: combinedContent,
+          token_estimate: combinedContent.length / 4, // Simple token estimate
+        };
+      })
+      .catch((error) => {
+        console.error("Error generating modular content:", error);
+        return { error: "Failed to generate content using modular endpoints." };
+      });
   }
 
   /**
    * Process Claude's response
-   * @param {string} response - Claude's response text
-   * @returns {Promise} Promise that resolves to processing results
+   * @param {string} response - Claude's response
+   * @returns {Promise} Promise resolving to processing results
    */
   function processClaudeResponse(response) {
-    return Utilities.fetchJSON(
-      "/api/process_claude_response",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          claude_response: response,
-        }),
-      },
-      (data) => data,
-      (error) => {
+    const formData = new FormData();
+    formData.append("response", response);
+
+    return fetch("/api/process-response", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .catch((error) => {
         console.error("Error processing response:", error);
-        return { error: error.message || "Failed to process response" };
-      }
-    );
+        return { error: "Failed to process Claude's response." };
+      });
+  }
+
+  /**
+   * Search files for the given query
+   * @param {string} query - Search query
+   * @returns {Promise} Promise resolving to search results
+   */
+  function searchFiles(query) {
+    const formData = new FormData();
+    formData.append("search_query", query);
+
+    return fetch("/api/search_files", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .catch((error) => {
+        console.error("Error searching files:", error);
+        return { error: "Failed to search files." };
+      });
+  }
+
+  /**
+   * Fetch token count for a folder
+   * @param {string} folderPath - Path to folder
+   * @returns {Promise} Promise resolving to token count
+   */
+  function fetchFolderTokenCount(folderPath) {
+    const formData = new FormData();
+    formData.append("folder_path", folderPath);
+
+    return fetch("/api/get_folder_token_count", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .catch((error) => {
+        console.error("Error fetching folder tokens:", error);
+        return { error: "Failed to get folder token count." };
+      });
   }
 
   // Public API
   return {
     fetchDirectoryStructure,
-    fetchFolderTokenCount,
-    searchFiles,
+    fetchDirectoryStructureForPrompt,
+    fetchFileData,
+    fetchPlanningPrompt,
+    fetchEditingPrompt,
     generateCombinedContent,
+    generateModularContent,
     processClaudeResponse,
+    searchFiles,
+    fetchFolderTokenCount,
   };
 })();
