@@ -5,55 +5,97 @@
 
 const Utilities = (function () {
   /**
+   * Show a snack bar message
+   * @param {string} message - Message to display
+   * @param {string} type - Type of snack bar: 'error', 'success', 'info', 'warning'
+   * @param {number} durationMs - Duration in milliseconds before auto-close
+   * @returns {HTMLElement} The created snack bar element
+   */
+  function showSnackBar(message, type = "info", durationMs = 3000) {
+    // Get or create snack bar container
+    let snackBarContainer = document.getElementById("snack-bar-container");
+    if (!snackBarContainer) {
+      snackBarContainer = document.createElement("div");
+      snackBarContainer.id = "snack-bar-container";
+      snackBarContainer.className = "snack-bar-container";
+      document.body.appendChild(snackBarContainer);
+    }
+
+    // Create snack bar element
+    const snackBar = document.createElement("div");
+    snackBar.className = `snack-bar snack-bar-${type} show-snack-bar`;
+
+    // Set icon based on type
+    let icon = "info-circle";
+    switch (type) {
+      case "error":
+        icon = "exclamation-circle";
+        break;
+      case "success":
+        icon = "check-circle";
+        break;
+      case "info":
+        icon = "exclamation-triangle";
+        break;
+    }
+
+    snackBar.innerHTML = `
+      <div class="snack-bar-content">
+        <i class="fas fa-${icon} me-2"></i>
+        <span>${message}</span>
+      </div>
+      <button type="button" class="snack-bar-close">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+
+    // Add to container
+    snackBarContainer.appendChild(snackBar);
+
+    // Add close button functionality
+    const closeButton = snackBar.querySelector(".snack-bar-close");
+    closeButton.addEventListener("click", () => {
+      snackBar.classList.remove("show-snack-bar");
+      snackBar.classList.add("hide-snack-bar");
+
+      // Remove from DOM after animation
+      setTimeout(() => {
+        if (snackBar.parentNode) {
+          snackBar.parentNode.removeChild(snackBar);
+        }
+      }, 300);
+    });
+
+    // Auto-close after duration
+    if (durationMs > 0) {
+      setTimeout(() => {
+        if (snackBar.parentNode) {
+          snackBar.classList.remove("show-snack-bar");
+          snackBar.classList.add("hide-snack-bar");
+
+          // Remove from DOM after animation
+          setTimeout(() => {
+            if (snackBar.parentNode) {
+              snackBar.parentNode.removeChild(snackBar);
+            }
+          }, 300);
+        }
+      }, durationMs);
+    }
+
+    return snackBar;
+  }
+
+  /**
    * Show an error message
    * @param {string} message - Error message to display
-   * @param {string} containerId - ID of the container to insert the error (optional)
-   * @param {string} errorId - ID for the error element (optional)
-   * @param {number} autoCloseMs - Auto-close time in milliseconds, 0 for no auto-close (optional)
+   * @param {string} containerId - DEPRECATED - ID of the container, no longer used
+   * @param {string} errorId - DEPRECATED - ID for the error element, no longer used
+   * @param {number} durationMs - Duration in milliseconds before auto-close
+   * @returns {HTMLElement} The created snack bar element
    */
-  function showError(message, containerId = "main-content", errorId = null, autoCloseMs = 5000) {
-    // Get container element
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    // Create error element ID if not provided
-    const errId = errorId || `error-${Date.now()}`;
-
-    // Check if error element already exists with the specified ID
-    let errorElement = document.getElementById(errId);
-
-    if (!errorElement) {
-      // Create error element
-      errorElement = document.createElement("div");
-      errorElement.id = errId;
-      errorElement.className = "alert alert-danger alert-dismissible fade show my-3";
-      errorElement.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-
-      // Insert at the top of the container
-      container.insertBefore(errorElement, container.firstChild);
-    } else {
-      // Update existing error element
-      errorElement.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-    }
-
-    // Auto dismiss if specified
-    if (autoCloseMs > 0) {
-      setTimeout(() => {
-        if (errorElement.parentNode) {
-          // Check if element is still in the DOM
-          const alert = new bootstrap.Alert(errorElement);
-          alert.close();
-        }
-      }, autoCloseMs);
-    }
-
-    return errorElement;
+  function showError(message, containerId = null, errorId = null, durationMs = 3000) {
+    return showSnackBar(message, "error", durationMs);
   }
 
   /**
@@ -160,7 +202,7 @@ const Utilities = (function () {
    * Set up clipboard paste functionality
    * @param {string} buttonId - Paste button ID
    * @param {string} targetId - Target textarea ID
-   * @param {string} resultsId - Results container ID (optional)
+   * @param {string} resultsId - Results container ID (deprecated, no longer used)
    * @returns {boolean} - True if setup was successful
    */
   function setupClipboardPaste(buttonId, targetId, resultsId = null) {
@@ -182,34 +224,11 @@ const Utilities = (function () {
         // Set the textarea value to the clipboard content
         targetElement.value = text;
 
-        // Show success message if results container is specified
-        if (resultsId) {
-          const processResults = document.getElementById(resultsId);
-          if (processResults) {
-            processResults.innerHTML = `
-            <div class="alert alert-success">
-              <strong>Success!</strong> Content pasted from clipboard.
-            </div>
-          `;
-
-            // Clear the message after 3 seconds
-            setTimeout(function () {
-              processResults.innerHTML = "";
-            }, 3000);
-          }
-        }
+        // Show success message
+        showSnackBar("Content pasted from clipboard", "success");
       } catch (err) {
         // Handle errors (e.g., clipboard permission denied)
-        if (resultsId) {
-          const processResults = document.getElementById(resultsId);
-          if (processResults) {
-            processResults.innerHTML = `
-            <div class="alert alert-danger">
-              <strong>Error:</strong> Could not access clipboard. ${err.message}
-            </div>
-          `;
-          }
-        }
+        showSnackBar(`Could not access clipboard: ${err.message}`, "error");
       }
     });
 
@@ -219,6 +238,7 @@ const Utilities = (function () {
   // Public API
   return {
     showError,
+    showSnackBar,
     formatFileSize,
     copyToClipboard,
     fetchJSON,

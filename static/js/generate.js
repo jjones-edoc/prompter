@@ -19,7 +19,7 @@ const GenerateDialog = (function () {
             </div>
           </div>
 
-          <div id="copy-status" class="alert mt-3 d-none"></div>
+          <!-- Removed inline alert -->
         </div>
       </div>
     `;
@@ -56,14 +56,8 @@ const GenerateDialog = (function () {
       Utilities.copyToClipboard(
         promptContent.value,
         () => {
-          copyStatus.textContent = "Copied to clipboard!";
-          copyStatus.classList.remove("d-none", "alert-danger");
-          copyStatus.classList.add("alert-success");
-
-          // Clear the status after 3 seconds
-          setTimeout(function () {
-            copyStatus.classList.add("d-none");
-          }, 3000);
+          // Show success snackbar
+          Utilities.showSnackBar("Copied to clipboard!", "success");
 
           // Call the onCopy callback
           if (callbacks && callbacks.onCopy) {
@@ -71,9 +65,8 @@ const GenerateDialog = (function () {
           }
         },
         (err) => {
-          copyStatus.textContent = "Copy failed: " + err;
-          copyStatus.classList.remove("d-none", "alert-success");
-          copyStatus.classList.add("alert-danger");
+          // Show error snackbar
+          Utilities.showSnackBar("Copy failed: " + err, "error");
         }
       );
 

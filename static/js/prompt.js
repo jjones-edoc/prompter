@@ -72,7 +72,7 @@ const PromptDialog = (function () {
 
         // Validate
         if (!promptText.trim()) {
-          Utilities.showError("Please enter a prompt before continuing.", "prompt-form", "prompt-error");
+          Utilities.showSnackBar("Please enter a prompt before continuing.", "error");
           return;
         }
 

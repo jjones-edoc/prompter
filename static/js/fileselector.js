@@ -259,7 +259,7 @@ const FileSelector = (function () {
         const tokenCount = calculateTotalTokens();
 
         if (selectedFiles.length === 0 && selectedFolders.length === 0) {
-          Utilities.showError("Please select at least one file or folder before generating.", "file-selection-form", "file-selector-error");
+          Utilities.showSnackBar("Please select at least one file or folder before generating.", "error");
           return;
         }
 

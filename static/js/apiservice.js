@@ -16,7 +16,7 @@ const ApiService = (function () {
       (data) => data,
       (error) => {
         console.error("Error fetching directory structure:", error);
-        Utilities.showError("Failed to load directory structure. Please try again.");
+        Utilities.showSnackBar("Failed to load directory structure. Please try again.", "error");
       }
     );
   }
@@ -101,7 +101,7 @@ const ApiService = (function () {
       },
       (error) => {
         console.error("Error generating content:", error);
-        Utilities.showError("Failed to generate content. Please try again.");
+        Utilities.showSnackBar("Failed to generate content. Please try again.", "error");
         return { error: error.message || "Failed to generate content" };
       }
     );

@@ -27,7 +27,7 @@ const ResponseDialog = (function () {
             </a>
           </div>
 
-          <div id="copy-status" class="alert mt-3 d-none"></div>
+          <!-- Removed inline alert -->
           <div id="process-results" class="mt-3">
             ${renderProcessingResults(state.processingResults)}
           </div>
@@ -88,14 +88,14 @@ const ResponseDialog = (function () {
 
   function setupEventListeners(callbacks) {
     // Paste from clipboard button
-    Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response", "process-results");
+    Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response");
 
     // Process button
     Utilities.setupButtonListener("process-button", function () {
       const responseText = document.getElementById("claude-response").value.trim();
 
       if (!responseText) {
-        Utilities.showError("Please paste Claude's response first.", "process-results");
+        Utilities.showSnackBar("Please paste Claude's response first.", "error");
         return;
       }
 

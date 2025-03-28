@@ -61,7 +61,6 @@ const DialogControllers = (function () {
 
     PromptDialog.setupEventListeners({
       onSubmit: function (promptData) {
-        console.log("Prompt data submitted:", promptData);
         // Update state with prompt data
         StateManager.updateDialogState("promptDialog", {
           userPrompt: promptData.prompt,
@@ -109,6 +108,9 @@ const DialogControllers = (function () {
     // Show loading state
     document.getElementById("search-stats").innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Searching for "${query}"...`;
     document.getElementById("search-status").classList.remove("d-none");
+
+    // Show info snackbar
+    Utilities.showSnackBar(`Searching for "${query}"...`, "info", 2000);
 
     ApiService.searchFiles(query).then((data) => {
       const state = StateManager.getState();
