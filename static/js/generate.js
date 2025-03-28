@@ -1,44 +1,31 @@
-/**
- * Generate Dialog module
- * Handles prompt generation and copying
- */
-
 const GenerateDialog = (function () {
-  /**
-   * Render the generate dialog
-   * @returns {string} HTML content for the generate dialog
-   */
-  function render() {
+  function render(state) {
     return `
-          <div class="card shadow-sm mb-4">
-            <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
-              <h2 class="h4 mb-0">Your Generated Prompt</h2>
-            </div>
-            <div class="card-body">
-              <div class="mb-4">
-                <textarea id="prompt-content" class="form-control bg-light d-none" rows="15"></textarea>
-              </div>
-    
-              <div class="d-flex flex-wrap gap-2 justify-content-between">
-                <div>
-                  <button id="toggle-prompt-btn" class="btn btn-primary"><i class="fas fa-eye me-1"></i> Show Prompt</button>
-                  <button id="copy-button" class="btn btn-primary ms-2"><i class="fas fa-copy me-1"></i> Copy to Clipboard</button>
-                  <button id="back-button" class="btn btn-secondary ms-2"><i class="fas fa-arrow-left me-1"></i> Back</button>
-                  <button id="restart-button" class="btn btn-secondary ms-2"><i class="fas fa-redo me-1"></i> Start New</button>
-                </div>
-              </div>
-    
-              <div id="copy-status" class="alert mt-3 d-none"></div>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
+          <h2 class="h4 mb-0">Your Generated Prompt</h2>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <textarea id="prompt-content" class="form-control bg-light d-none" rows="15"></textarea>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 justify-content-between">
+            <div>
+              <button id="toggle-prompt-btn" class="btn btn-primary"><i class="fas fa-eye me-1"></i> Show Prompt</button>
+              <button id="copy-button" class="btn btn-primary ms-2"><i class="fas fa-copy me-1"></i> Copy to Clipboard</button>
+              <button id="back-button" class="btn btn-secondary ms-2"><i class="fas fa-arrow-left me-1"></i> Back</button>
+              <button id="restart-button" class="btn btn-secondary ms-2"><i class="fas fa-redo me-1"></i> Start New</button>
             </div>
           </div>
-        `;
+
+          <div id="copy-status" class="alert mt-3 d-none"></div>
+        </div>
+      </div>
+    `;
   }
 
-  /**
-   * Set up event listeners for the generate dialog
-   * @param {Function} actionCallback - Callback for dialog actions
-   */
-  function setupEventListeners(actionCallback) {
+  function setupEventListeners(callbacks) {
     // Toggle prompt visibility
     Utilities.setupButtonListener("toggle-prompt-btn", function () {
       const promptContent = document.getElementById("prompt-content");
@@ -77,6 +64,11 @@ const GenerateDialog = (function () {
           setTimeout(function () {
             copyStatus.classList.add("d-none");
           }, 3000);
+
+          // Call the onCopy callback
+          if (callbacks && callbacks.onCopy) {
+            callbacks.onCopy();
+          }
         },
         (err) => {
           copyStatus.textContent = "Copy failed: " + err;
@@ -89,28 +81,22 @@ const GenerateDialog = (function () {
       if (wasHidden) {
         promptContent.classList.add("d-none");
       }
-
-      // Notify parent that copy action was performed
-      if (actionCallback) {
-        actionCallback("copy");
-      }
     });
 
     // Back button
     Utilities.setupButtonListener("back-button", function () {
-      if (actionCallback) {
-        actionCallback("back");
+      if (callbacks && callbacks.onBack) {
+        callbacks.onBack();
       }
     });
 
     // Restart button
     Utilities.setupButtonListener("restart-button", function () {
-      if (actionCallback) {
-        actionCallback("restart");
+      if (callbacks && callbacks.onRestart) {
+        callbacks.onRestart();
       }
     });
   }
-
 
   // Public API
   return {

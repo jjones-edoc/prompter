@@ -1,15 +1,5 @@
-/**
- * Response Dialog module
- * Handles displaying and processing Claude's response
- */
-
 const ResponseDialog = (function () {
-  /**
-   * Render the response dialog
-   * @param {string} claudeResponse - Claude's response text (optional)
-   * @returns {string} HTML content for the response dialog
-   */
-  function render(claudeResponse = "") {
+  function render(state) {
     return `
       <div class="card shadow-sm mb-4">
         <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
@@ -17,7 +7,7 @@ const ResponseDialog = (function () {
         </div>
         <div class="card-body">
           <div class="mb-4">
-            <textarea id="claude-response" class="form-control" rows="15" placeholder="Paste Claude's response here...">${claudeResponse}</textarea>
+            <textarea id="claude-response" class="form-control" rows="15" placeholder="Paste Claude's response here...">${state.claudeResponse || ""}</textarea>
           </div>
 
           <div class="d-flex flex-wrap gap-2 justify-content-between">
@@ -38,49 +28,16 @@ const ResponseDialog = (function () {
           </div>
 
           <div id="copy-status" class="alert mt-3 d-none"></div>
-          <div id="process-results" class="mt-3"></div>
+          <div id="process-results" class="mt-3">
+            ${renderProcessingResults(state.processingResults)}
+          </div>
         </div>
       </div>
     `;
   }
 
-  /**
-   * Set up event listeners for the response dialog
-   * @param {Function} actionCallback - Callback for dialog actions
-   */
-  function setupEventListeners(actionCallback) {
-    // Paste from clipboard button - using the new utility function
-    Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response", "process-results");
-
-    // Process button - using the new utility function
-    Utilities.setupButtonListener("process-button", function () {
-      const responseText = document.getElementById("claude-response").value.trim();
-
-      if (!responseText) {
-        Utilities.showError("Please paste Claude's response first.", "process-results");
-        return;
-      }
-
-      if (actionCallback) {
-        actionCallback("process", { claudeResponse: responseText });
-      }
-    });
-
-    // Done button (back to prompt) - using the new utility function
-    Utilities.setupButtonListener("done-button", function () {
-      if (actionCallback) {
-        actionCallback("done");
-      }
-    });
-  }
-
-  /**
-   * Update the processing results section
-   * @param {Object} data - Processing results data
-   */
-  function updateProcessingResults(data) {
-    const resultsContainer = document.getElementById("process-results");
-    if (!resultsContainer) return;
+  function renderProcessingResults(data) {
+    if (!data) return "";
 
     let statusType = "success";
     let statusMessage = "";
@@ -121,18 +78,43 @@ const ResponseDialog = (function () {
       statusMessage = `<strong>Error:</strong> ${data.error || "An unknown error occurred."}`;
     }
 
-    // Update the results container
-    resultsContainer.innerHTML = `
+    // Return the HTML string
+    return `
       <div class="alert alert-${statusType}">
         ${statusMessage}
       </div>
     `;
   }
 
+  function setupEventListeners(callbacks) {
+    // Paste from clipboard button
+    Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response", "process-results");
+
+    // Process button
+    Utilities.setupButtonListener("process-button", function () {
+      const responseText = document.getElementById("claude-response").value.trim();
+
+      if (!responseText) {
+        Utilities.showError("Please paste Claude's response first.", "process-results");
+        return;
+      }
+
+      if (callbacks && callbacks.onProcess) {
+        callbacks.onProcess({ claudeResponse: responseText });
+      }
+    });
+
+    // Done button
+    Utilities.setupButtonListener("done-button", function () {
+      if (callbacks && callbacks.onDone) {
+        callbacks.onDone();
+      }
+    });
+  }
+
   // Public API
   return {
     render: render,
     setupEventListeners: setupEventListeners,
-    updateProcessingResults: updateProcessingResults,
   };
 })();

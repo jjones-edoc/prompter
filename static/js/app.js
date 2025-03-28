@@ -1,86 +1,370 @@
-/**
- * Main application controller for the Prompter Modern UI
- * Handles state management and dialog navigation
- */
-
 const App = (function () {
-  // Application state
+  // Centralized application state
   let state = {
-    userPrompt: "",
-    includeCodingPrompt: false,
-    includeDirectoryStructure: false,
-    selectedFiles: [],
-    selectedFolders: [],
-    tokenCount: 0,
+    // Prompt dialog state
+    promptDialogState: {
+      userPrompt: "",
+      includeCodingPrompt: false,
+      includeDirectoryStructure: false,
+    },
+
+    // File selector state
+    fileSelectorState: {
+      directoryStructure: null,
+      selectedFiles: [],
+      selectedFolders: [],
+      tokenCount: 0,
+      searchResults: null, // Add this property
+    },
+
+    // Generate dialog state
+    generateDialogState: {
+      generatedContent: "",
+    },
+
+    // Response dialog state
+    responseDialogState: {
+      claudeResponse: "",
+      processingResults: null,
+    },
+
+    // Current active dialog
+    currentDialog: "prompt", // "prompt", "fileSelector", "generate", "response"
   };
 
-  /**
-   * Initialize the application
-   */
   function init() {
-    // Start with the prompt dialog
-    showPromptDialog();
-  }
-  /**
-   * Show the prompt input dialog
-   */
-  function showPromptDialog() {
-    const mainContent = document.getElementById("main-content");
-    mainContent.innerHTML = PromptDialog.render(state);
-    PromptDialog.setupEventListeners(handlePromptSubmit);
+    renderCurrentDialog();
   }
 
-  /**
-   * Show the file selector dialog
-   */
-  function showFileSelector() {
+  // Central function to render the current dialog
+  function renderCurrentDialog() {
     const mainContent = document.getElementById("main-content");
-    mainContent.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Loading files...</div>';
 
-    // Fetch data needed for file selector
-    fetchDirectoryStructure().then(() => {
-      mainContent.innerHTML = FileSelector.render(state);
-      FileSelector.setupEventListeners(handleFileSelection);
+    // Show loading state during transitions
+    mainContent.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Loading...</div>';
+
+    switch (state.currentDialog) {
+      case "prompt":
+        renderPromptDialog();
+        break;
+      case "fileSelector":
+        renderFileSelectorDialog();
+        break;
+      case "generate":
+        renderGenerateDialog();
+        break;
+      case "response":
+        renderResponseDialog();
+        break;
+    }
+  }
+
+  // Individual dialog rendering functions with appropriate callbacks
+  function renderPromptDialog() {
+    const mainContent = document.getElementById("main-content");
+    mainContent.innerHTML = PromptDialog.render(state.promptDialogState);
+
+    PromptDialog.setupEventListeners({
+      onSubmit: function (promptData) {
+        // Update state with prompt data
+        state.promptDialogState.userPrompt = promptData.prompt;
+        state.promptDialogState.includeCodingPrompt = promptData.includeCodingPrompt;
+        state.promptDialogState.includeDirectoryStructure = promptData.includeDirectoryStructure;
+
+        // Transition to file selector
+        state.currentDialog = "fileSelector";
+        renderCurrentDialog();
+      },
     });
   }
 
-  /**
-   * Show the generate dialog
-   */
-  function showGenerateDialog() {
-    const mainContent = document.getElementById("main-content");
-    mainContent.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Generating prompt...</div>';
+  function renderFileSelectorDialog() {
+    // If directory structure not loaded yet, fetch it first
+    if (!state.fileSelectorState.directoryStructure) {
+      fetchDirectoryStructure().then(() => {
+        const mainContent = document.getElementById("main-content");
+        mainContent.innerHTML = FileSelector.render(state.fileSelectorState);
 
-    // Generate the combined content
-    generateCombinedContent().then((combinedContent) => {
-      mainContent.innerHTML = GenerateDialog.render();
-      document.getElementById("prompt-content").value = combinedContent.combined_content;
-      GenerateDialog.setupEventListeners(handleGenerateActions);
+        FileSelector.setupEventListeners({
+          onSubmit: function (fileData) {
+            // Update state with file selection data
+            state.fileSelectorState.selectedFiles = fileData.files;
+            state.fileSelectorState.selectedFolders = fileData.folders;
+            state.fileSelectorState.tokenCount = fileData.tokenCount;
+
+            // Transition to generate dialog
+            state.currentDialog = "generate";
+            renderCurrentDialog();
+          },
+          onBack: function () {
+            // Go back to prompt dialog
+            state.currentDialog = "prompt";
+            renderCurrentDialog();
+          },
+          onSelectionChange: function (selectionData) {
+            // Update state with latest selection data without changing dialog
+            state.fileSelectorState.selectedFiles = selectionData.files;
+            state.fileSelectorState.selectedFolders = selectionData.folders;
+            state.fileSelectorState.tokenCount = selectionData.tokenCount;
+          },
+          onSearch: function (query) {
+            performSearch(query);
+          },
+          onClearSearch: function () {
+            clearSearch();
+          },
+          onFolderTokenRequest: function (folderPath, tokenBadgeElement) {
+            fetchFolderTokenCount(folderPath, tokenBadgeElement);
+          },
+        });
+      });
+    } else {
+      // Directory structure already loaded
+      const mainContent = document.getElementById("main-content");
+      mainContent.innerHTML = FileSelector.render(state.fileSelectorState);
+
+      FileSelector.setupEventListeners({
+        onSubmit: function (fileData) {
+          // Update state with file selection data
+          state.fileSelectorState.selectedFiles = fileData.files;
+          state.fileSelectorState.selectedFolders = fileData.folders;
+          state.fileSelectorState.tokenCount = fileData.tokenCount;
+
+          // Transition to generate dialog
+          state.currentDialog = "generate";
+          renderCurrentDialog();
+        },
+        onBack: function () {
+          // Go back to prompt dialog
+          state.currentDialog = "prompt";
+          renderCurrentDialog();
+        },
+        onSelectionChange: function (selectionData) {
+          // Update state with latest selection data without changing dialog
+          state.fileSelectorState.selectedFiles = selectionData.files;
+          state.fileSelectorState.selectedFolders = selectionData.folders;
+          state.fileSelectorState.tokenCount = selectionData.tokenCount;
+        },
+        onSearch: function (query) {
+          performSearch(query);
+        },
+        onClearSearch: function () {
+          clearSearch();
+        },
+        onFolderTokenRequest: function (folderPath, tokenBadgeElement) {
+          fetchFolderTokenCount(folderPath, tokenBadgeElement);
+        },
+      });
+    }
+  }
+
+  function performSearch(query) {
+    // Show loading state
+    document.getElementById("search-stats").innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Searching for "${query}"...`;
+    document.getElementById("search-status").classList.remove("d-none");
+
+    // Create form data and fetch
+    const formData = new FormData();
+    formData.append("search_query", query);
+
+    Utilities.fetchJSON(
+      "/api/search_files",
+      { method: "POST", body: formData },
+      (data) => {
+        if (data.error) {
+          // Store search results in state
+          state.fileSelectorState.searchResults = {
+            error: data.error,
+            query: query,
+          };
+        } else {
+          // Store search results in state
+          state.fileSelectorState.searchResults = {
+            query: query,
+            count: data.count,
+            matching_files: data.matching_files,
+          };
+        }
+
+        // Update UI with search results
+        FileSelector.updateSearchResults(state.fileSelectorState.searchResults, state.fileSelectorState.selectedFiles);
+
+        // Rebind checkbox events by re-setting up event listeners
+        FileSelector.setupEventListeners({
+          onSubmit: function (fileData) {
+            // Update state with file selection data
+            state.fileSelectorState.selectedFiles = fileData.files;
+            state.fileSelectorState.selectedFolders = fileData.folders;
+            state.fileSelectorState.tokenCount = fileData.tokenCount;
+
+            // Transition to generate dialog
+            state.currentDialog = "generate";
+            renderCurrentDialog();
+          },
+          onBack: function () {
+            // Go back to prompt dialog
+            state.currentDialog = "prompt";
+            renderCurrentDialog();
+          },
+          onSelectionChange: function (selectionData) {
+            // Update state with latest selection data without changing dialog
+            state.fileSelectorState.selectedFiles = selectionData.files;
+            state.fileSelectorState.selectedFolders = selectionData.folders;
+            state.fileSelectorState.tokenCount = selectionData.tokenCount;
+          },
+          onSearch: function (query) {
+            performSearch(query);
+          },
+          onClearSearch: function () {
+            clearSearch();
+          },
+          onFolderTokenRequest: function (folderPath, tokenBadgeElement) {
+            fetchFolderTokenCount(folderPath, tokenBadgeElement);
+          },
+        });
+
+        // Update select all button
+        FileSelector.updateSelectAllButton();
+      },
+      (error) => {
+        console.error("Error searching files:", error);
+        state.fileSelectorState.searchResults = {
+          error: error.message || "Unknown error occurred",
+          query: query,
+        };
+        FileSelector.updateSearchResults(state.fileSelectorState.searchResults, state.fileSelectorState.selectedFiles);
+      }
+    );
+  }
+
+  function clearSearch() {
+    // Clear search input and results
+    const searchInput = document.getElementById("search-input");
+    if (searchInput) searchInput.value = "";
+
+    // Reset search state
+    state.fileSelectorState.searchResults = null;
+
+    // Re-render file selector with full tree
+    renderFileSelectorDialog();
+  }
+
+  function fetchFolderTokenCount(folderPath, badgeElement) {
+    badgeElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    const formData = new FormData();
+    formData.append("folder_path", folderPath);
+
+    Utilities.fetchJSON(
+      "/api/get_folder_token_count",
+      { method: "POST", body: formData },
+      (data) => {
+        if (data.error) {
+          console.error("Error fetching token count:", data.error);
+          badgeElement.textContent = "0 tokens";
+        } else {
+          badgeElement.textContent = `${data.token_count} tokens`;
+          badgeElement.setAttribute("data-folder-tokens", data.token_count);
+
+          // Update token count in UI
+          const totalTokens = FileSelector.calculateTotalTokens();
+          state.fileSelectorState.tokenCount = totalTokens;
+        }
+      },
+      (error) => {
+        console.error("Error fetching folder token count:", error);
+        badgeElement.textContent = "0 tokens";
+      }
+    );
+  }
+
+  function renderGenerateDialog() {
+    // If generated content not created yet, generate it first
+    if (!state.generateDialogState.generatedContent) {
+      generateCombinedContent().then((combinedContent) => {
+        state.generateDialogState.generatedContent = combinedContent.combined_content;
+
+        const mainContent = document.getElementById("main-content");
+        mainContent.innerHTML = GenerateDialog.render(state.generateDialogState);
+
+        document.getElementById("prompt-content").value = state.generateDialogState.generatedContent;
+
+        GenerateDialog.setupEventListeners({
+          onBack: function () {
+            // Go back to file selection
+            state.currentDialog = "fileSelector";
+            renderCurrentDialog();
+          },
+          onRestart: function () {
+            // Clear state and go back to prompt dialog
+            resetState();
+            state.currentDialog = "prompt";
+            renderCurrentDialog();
+          },
+          onCopy: function () {
+            // After copying, navigate to the response dialog
+            state.currentDialog = "response";
+            renderCurrentDialog();
+          },
+        });
+      });
+    } else {
+      // Generated content already exists
+      const mainContent = document.getElementById("main-content");
+      mainContent.innerHTML = GenerateDialog.render(state.generateDialogState);
+
+      GenerateDialog.setupEventListeners({
+        onBack: function () {
+          // Go back to file selection
+          state.currentDialog = "fileSelector";
+          renderCurrentDialog();
+        },
+        onRestart: function () {
+          // Clear state and go back to prompt dialog
+          resetState();
+          state.currentDialog = "prompt";
+          renderCurrentDialog();
+        },
+        onCopy: function () {
+          // After copying, navigate to the response dialog
+          state.currentDialog = "response";
+          renderCurrentDialog();
+        },
+      });
+    }
+  }
+
+  function renderResponseDialog() {
+    const mainContent = document.getElementById("main-content");
+    mainContent.innerHTML = ResponseDialog.render(state.responseDialogState);
+
+    ResponseDialog.setupEventListeners({
+      onProcess: function (data) {
+        // Process Claude's response
+        if (data && data.claudeResponse) {
+          state.responseDialogState.claudeResponse = data.claudeResponse;
+          processClaudeResponse(data.claudeResponse);
+        }
+      },
+      onDone: function () {
+        // Go back to generate dialog
+        state.currentDialog = "generate";
+        renderCurrentDialog();
+      },
     });
   }
 
-  /**
-   * Show the response dialog
-   * @param {string} claudeResponse - Claude's response text (optional)
-   */
-  function showResponseDialog(claudeResponse = "") {
-    const mainContent = document.getElementById("main-content");
-    mainContent.innerHTML = ResponseDialog.render(claudeResponse);
-    ResponseDialog.setupEventListeners(handleResponseActions);
-  }
+  // Utility functions remain mostly the same but update state instead of relying on external modules
 
-  /**
-   * Fetch directory structure from the server
-   */
   function fetchDirectoryStructure() {
     return Utilities.fetchJSON(
       "/api/get_complete_folder_tree",
       {
         method: "POST",
-        body: new FormData(), // Empty form data for root path
+        body: new FormData(),
       },
       (data) => {
-        state.directoryStructure = data;
+        state.fileSelectorState.directoryStructure = data;
         return data;
       },
       (error) => {
@@ -90,26 +374,23 @@ const App = (function () {
     );
   }
 
-  /**
-   * Generate the combined content for the prompt
-   */
   function generateCombinedContent() {
     const formData = new FormData();
 
     // Add selected files
-    state.selectedFiles.forEach((file) => {
+    state.fileSelectorState.selectedFiles.forEach((file) => {
       formData.append("selected_files", file);
     });
 
     // Add selected folders
-    state.selectedFolders.forEach((folder) => {
+    state.fileSelectorState.selectedFolders.forEach((folder) => {
       formData.append("selected_folder", folder);
     });
 
     // Add prompt options
-    formData.append("user_prompt", state.userPrompt);
-    formData.append("include_coding_prompt", state.includeCodingPrompt ? "1" : "0");
-    formData.append("include_directory_structure", state.includeDirectoryStructure ? "1" : "0");
+    formData.append("user_prompt", state.promptDialogState.userPrompt);
+    formData.append("include_coding_prompt", state.promptDialogState.includeCodingPrompt ? "1" : "0");
+    formData.append("include_directory_structure", state.promptDialogState.includeDirectoryStructure ? "1" : "0");
 
     return Utilities.fetchJSON(
       "/api/generate",
@@ -121,7 +402,6 @@ const App = (function () {
         if (data.error) {
           throw new Error(data.error);
         }
-        console.log("File content received:", data.combined_content ? "Content received successfully" : "No content received");
         return data;
       },
       (error) => {
@@ -132,96 +412,7 @@ const App = (function () {
     );
   }
 
-  /**
-   * Handle prompt form submission
-   * @param {Object} promptData - Data from the prompt form
-   */
-  function handlePromptSubmit(promptData) {
-    // Update state with prompt data
-    state.userPrompt = promptData.prompt;
-    state.includeCodingPrompt = promptData.includeCodingPrompt;
-    state.includeDirectoryStructure = promptData.includeDirectoryStructure;
-
-    // Move directly to file selection without any API calls
-    showFileSelector();
-  }
-
-  /**
-   * Handle file selection submission
-   * @param {Object} fileData - Selected files and folders
-   */
-  function handleFileSelection(fileData) {
-    // Update state with selected files and folders
-    state.selectedFiles = fileData.files;
-    state.selectedFolders = fileData.folders;
-    state.tokenCount = fileData.tokenCount;
-
-    // Move to generate dialog
-    showGenerateDialog();
-  }
-
-  /**
-   * Handle actions from the generate dialog
-   * @param {string} action - The action to perform
-   * @param {Object} data - Additional data for the action
-   */
-  function handleGenerateActions(action, data) {
-    switch (action) {
-      case "copy":
-        // Copy to clipboard functionality is handled in the GenerateDialog module
-        // After copying, navigate to the response dialog
-        showResponseDialog();
-        break;
-
-      case "back":
-        // Go back to file selection
-        showFileSelector();
-        break;
-
-      case "restart":
-        // Clear state and go back to prompt dialog
-        resetState();
-        showPromptDialog();
-        break;
-    }
-  }
-
-  /**
-   * Handle actions from the response dialog
-   * @param {string} action - The action to perform
-   * @param {Object} data - Additional data for the action
-   */
-  function handleResponseActions(action, data) {
-    switch (action) {
-      case "process":
-        // Logic for processing Claude's response
-        if (data && data.claudeResponse) {
-          processClaudeResponse(data.claudeResponse);
-        }
-        break;
-
-      case "done":
-        // Go back to generate dialog
-        showGenerateDialog();
-        break;
-    }
-  }
-
-  /**
-   * Process Claude's response
-   * @param {string} response - Claude's response text
-   */
   function processClaudeResponse(response) {
-    // Show processing state
-    const resultsContainer = document.getElementById("process-results");
-    if (resultsContainer) {
-      resultsContainer.innerHTML = `
-        <div class="alert alert-info">
-          <i class="fas fa-spinner fa-spin me-2"></i> Processing response...
-        </div>
-      `;
-    }
-
     // Send to backend for processing
     Utilities.fetchJSON(
       "/api/process_claude_response",
@@ -235,42 +426,45 @@ const App = (function () {
         }),
       },
       (data) => {
-        // Update UI with results
-        ResponseDialog.updateProcessingResults(data);
+        // Update state with processing results
+        state.responseDialogState.processingResults = data;
+
+        // Re-render the response dialog to reflect updated state
+        renderResponseDialog();
       },
       (error) => {
         console.error("Error processing response:", error);
-        if (resultsContainer) {
-          resultsContainer.innerHTML = `
-          <div class="alert alert-danger">
-            <strong>Error:</strong> ${error.message || "Failed to process response"}
-          </div>
-        `;
-        }
+        Utilities.showError("Failed to process response: " + (error.message || "Unknown error"));
       }
     );
   }
 
-  /**
-   * Reset application state
-   */
   function resetState() {
     state = {
-      userPrompt: "",
-      includeCodingPrompt: false,
-      includeDirectoryStructure: false,
-      selectedFiles: [],
-      selectedFolders: [],
-      tokenCount: 0,
+      promptDialogState: {
+        userPrompt: "",
+        includeCodingPrompt: false,
+        includeDirectoryStructure: false,
+      },
+      fileSelectorState: {
+        directoryStructure: null, // Preserve directory structure to avoid reloading
+        selectedFiles: [],
+        selectedFolders: [],
+        tokenCount: 0,
+      },
+      generateDialogState: {
+        generatedContent: "",
+      },
+      responseDialogState: {
+        claudeResponse: "",
+        processingResults: null,
+      },
+      currentDialog: "prompt",
     };
   }
 
   // Public API
   return {
     init: init,
-    showPromptDialog: showPromptDialog,
-    showFileSelector: showFileSelector,
-    showGenerateDialog: showGenerateDialog,
-    showResponseDialog: showResponseDialog,
   };
 })();
