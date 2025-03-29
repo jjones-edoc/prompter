@@ -9,6 +9,8 @@ const StateManager = (function () {
       userPrompt: "",
       includeCodingPrompt: false,
       includeDirectoryStructure: false,
+      editingElementIndex: null,
+      isCreatingNew: false,
     },
 
     // File selector state
@@ -18,6 +20,8 @@ const StateManager = (function () {
       selectedFolders: [],
       tokenCount: 0,
       searchResults: null,
+      editingElementIndex: null,
+      isCreatingNew: false,
     },
 
     // Generate dialog state - updated for new workflow
@@ -185,6 +189,8 @@ const StateManager = (function () {
         userPrompt: "",
         includeCodingPrompt: false,
         includeDirectoryStructure: false,
+        editingElementIndex: null,
+        isCreatingNew: false,
       },
       fileSelectorState: {
         directoryStructure: directoryStructure,
@@ -192,6 +198,8 @@ const StateManager = (function () {
         selectedFolders: [],
         tokenCount: 0,
         searchResults: null,
+        editingElementIndex: null,
+        isCreatingNew: false,
       },
       generateDialogState: {
         generatedContent: "",

@@ -22,29 +22,34 @@ const DialogControllers = (function () {
         });
 
         const editingElementIndex = state.fileSelectorState.editingElementIndex;
+        const isCreatingNew = state.fileSelectorState.isCreatingNew;
 
-        // Check if we're editing an existing files element
-        if (editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
-          // Update existing element
-          StateManager.updatePromptElement(editingElementIndex, {
-            files: fileData.files,
-            folders: fileData.folders,
-            tokenCount: fileData.tokenCount,
-          });
-        } else {
-          // Add new files element
-          StateManager.addPromptElement({
-            type: "selectedFiles",
-            id: `selectedFiles-${Date.now()}`,
-            files: fileData.files,
-            folders: fileData.folders,
-            tokenCount: fileData.tokenCount,
-          });
+        // Only proceed if files or folders were selected
+        if ((fileData.files && fileData.files.length > 0) || (fileData.folders && fileData.folders.length > 0)) {
+          // Check if we're editing an existing files element
+          if (!isCreatingNew && editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
+            // Update existing element
+            StateManager.updatePromptElement(editingElementIndex, {
+              files: fileData.files,
+              folders: fileData.folders,
+              tokenCount: fileData.tokenCount,
+            });
+          } else {
+            // Add new files element
+            StateManager.addPromptElement({
+              type: "selectedFiles",
+              id: `selectedFiles-${Date.now()}`,
+              files: fileData.files,
+              folders: fileData.folders,
+              tokenCount: fileData.tokenCount,
+            });
+          }
         }
 
         // Reset editing state
         StateManager.updateDialogState("fileSelector", {
           editingElementIndex: null,
+          isCreatingNew: false
         });
 
         // Go back to generate dialog
@@ -52,6 +57,12 @@ const DialogControllers = (function () {
         renderCurrentDialog();
       },
       onBack: function () {
+        // Reset editing state before returning to generate dialog
+        StateManager.updateDialogState("fileSelector", {
+          editingElementIndex: null,
+          isCreatingNew: false
+        });
+        
         // Go back to generate dialog without saving changes
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
@@ -90,25 +101,30 @@ const DialogControllers = (function () {
     PromptDialog.setupEventListeners({
       onSubmit: function (promptData) {
         const editingElementIndex = state.promptDialogState.editingElementIndex;
-
-        // Check if we're editing an existing prompt element
-        if (editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
-          // Update existing element
-          StateManager.updatePromptElement(editingElementIndex, {
-            content: promptData.prompt,
-          });
-        } else {
-          // Add new user prompt element
-          StateManager.addPromptElement({
-            type: "userPrompt",
-            id: `userPrompt-${Date.now()}`,
-            content: promptData.prompt,
-          });
+        const isCreatingNew = state.promptDialogState.isCreatingNew;
+        
+        // Only proceed if the prompt has content
+        if (promptData.prompt && promptData.prompt.trim() !== "") {
+          // Check if we're editing an existing prompt element
+          if (!isCreatingNew && editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
+            // Update existing element
+            StateManager.updatePromptElement(editingElementIndex, {
+              content: promptData.prompt,
+            });
+          } else {
+            // Add new user prompt element
+            StateManager.addPromptElement({
+              type: "userPrompt",
+              id: `userPrompt-${Date.now()}`,
+              content: promptData.prompt,
+            });
+          }
         }
 
         // Reset editing state
         StateManager.updateDialogState("promptDialog", {
           editingElementIndex: null,
+          isCreatingNew: false
         });
 
         // Go back to generate dialog
@@ -117,6 +133,12 @@ const DialogControllers = (function () {
       },
 
       onCancel: function () {
+        // Reset editing state before returning to generate dialog
+        StateManager.updateDialogState("promptDialog", {
+          editingElementIndex: null,
+          isCreatingNew: false
+        });
+        
         // Go back to generate dialog without saving changes
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
@@ -347,22 +369,24 @@ const DialogControllers = (function () {
       },
 
       // Go to prompt dialog to edit user prompt
-      onEditPrompt: function () {
+      onEditPrompt: function (isCreatingNew = false) {
         // Find if there's an existing user prompt element
         const elements = state.generateDialogState.promptElements;
         let userPromptIndex = elements.findIndex((el) => el.type === "userPrompt");
 
-        if (userPromptIndex >= 0) {
+        if (userPromptIndex >= 0 && !isCreatingNew) {
           // Edit existing prompt element
           StateManager.updateDialogState("promptDialog", {
             userPrompt: elements[userPromptIndex].content || "",
             editingElementIndex: userPromptIndex,
+            isCreatingNew: false
           });
         } else {
-          // Create new prompt element
+          // Creating a new prompt element
           StateManager.updateDialogState("promptDialog", {
             userPrompt: "",
             editingElementIndex: -1,
+            isCreatingNew: true
           });
         }
 
@@ -371,17 +395,18 @@ const DialogControllers = (function () {
       },
 
       // Go to file selector
-      onSelectFiles: function () {
+      onSelectFiles: function (isCreatingNew = false) {
         // Find if there's an existing files element
         const elements = state.generateDialogState.promptElements;
         let filesElementIndex = elements.findIndex((el) => el.type === "selectedFiles");
 
-        if (filesElementIndex >= 0) {
+        if (filesElementIndex >= 0 && !isCreatingNew) {
           // Edit existing files element
           StateManager.updateDialogState("fileSelector", {
             selectedFiles: elements[filesElementIndex].files || [],
             selectedFolders: elements[filesElementIndex].folders || [],
             editingElementIndex: filesElementIndex,
+            isCreatingNew: false
           });
         } else {
           // Create new files element
@@ -389,6 +414,7 @@ const DialogControllers = (function () {
             selectedFiles: [],
             selectedFolders: [],
             editingElementIndex: -1,
+            isCreatingNew: true
           });
         }
 

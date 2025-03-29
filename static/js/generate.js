@@ -18,19 +18,14 @@ const GenerateDialog = (function () {
           <div class="element-manager mb-4">
             <div class="row">
               <div class="col-md-6">
-                <div class="card border mb-3">
+                <div class="card border h-100">
                   <div class="card-header bg-light">
                     <h3 class="h5 mb-0">Prompt Elements</h3>
                   </div>
-                  <div class="card-body p-0">
-                    <ul id="prompt-elements-list" class="list-group list-group-flush">
+                  <div class="card-body p-0 d-flex flex-column">
+                    <ul id="prompt-elements-list" class="list-group list-group-flush flex-grow-1" style="overflow-y: auto;">
                       ${renderPromptElements(promptElements)}
                     </ul>
-                    <div class="p-3 border-top">
-                      <button id="add-element-btn" class="btn btn-success btn-sm w-100">
-                        <i class="fas fa-plus me-1"></i> Add Element
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -246,16 +241,12 @@ const GenerateDialog = (function () {
   }
 
   function setupEventListeners(callbacks) {
-    // Add element button
-    Utilities.setupButtonListener("add-element-btn", function () {
-      showAddElementModal(callbacks);
-    });
 
     // Element type buttons
     document.querySelectorAll(".element-type-btn").forEach((button) => {
       button.addEventListener("click", function () {
         const elementType = this.getAttribute("data-element-type");
-        addElement(elementType, callbacks);
+        handleElementTypeClick(elementType, callbacks);
       });
     });
 
@@ -396,38 +387,40 @@ const GenerateDialog = (function () {
     });
   }
 
-  function showAddElementModal(callbacks) {
-    // For now, we're using the element-type-btn buttons instead of a modal
-    // This is a placeholder for future enhancement
-    Utilities.showSnackBar("Click on an element type from the Available Elements section", "info");
-  }
 
-  function addElement(elementType, callbacks) {
-    // Create a new element based on the type
-    let newElement = {
-      type: elementType,
-      id: `element-${Date.now()}`,
-    };
-
-    // Add type-specific properties
+  /**
+   * Handle click on element type button
+   * @param {string} elementType - Type of element clicked
+   * @param {Object} callbacks - Callback functions
+   */
+  function handleElementTypeClick(elementType, callbacks) {
     switch (elementType) {
       case "userPrompt":
-        newElement.content = "";
+        // Navigate directly to prompt dialog without adding element
+        if (callbacks && callbacks.onEditPrompt) {
+          callbacks.onEditPrompt(true); // Pass true to indicate creating new element
+        }
         break;
+        
       case "selectedFiles":
-        newElement.files = [];
-        newElement.folders = [];
+        // Navigate directly to file selector without adding element
+        if (callbacks && callbacks.onSelectFiles) {
+          callbacks.onSelectFiles(true); // Pass true to indicate creating new element
+        }
         break;
-      case "codingPrompt":
-      case "planningPrompt":
-      case "editingPrompt":
-      case "directoryStructure":
-        // No additional properties needed
+        
+      default:
+        // For other element types (like codingPrompt, planningPrompt, etc.)
+        // Create and add element immediately since they don't require additional user input
+        let newElement = {
+          type: elementType,
+          id: `element-${Date.now()}`,
+        };
+        
+        if (callbacks && callbacks.onAddElement) {
+          callbacks.onAddElement(newElement);
+        }
         break;
-    }
-
-    if (callbacks && callbacks.onAddElement) {
-      callbacks.onAddElement(newElement);
     }
   }
 

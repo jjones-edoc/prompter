@@ -298,24 +298,29 @@ const ApiService = (function () {
   }
 
   /**
-   * Process Claude's response
-   * @param {string} response - Claude's response
-   * @returns {Promise} Promise resolving to processing results
-   */
-  function processClaudeResponse(response) {
-    const formData = new FormData();
-    formData.append("response", response);
+ * Process Claude's response
+ * @param {string} claudeResponse - Claude's response
+ * @returns {Promise} Promise resolving to processing results
+ */
+function processClaudeResponse(claudeResponse) {
+  const formData = new FormData();
+  formData.append("claude_response", claudeResponse);
 
-    return fetch("/api/process-response", {
-      method: "POST",
-      body: formData,
+  return fetch("/api/process_claude_response", {
+    method: "POST",
+    body: formData,
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
     })
-      .then((response) => response.json())
-      .catch((error) => {
-        console.error("Error processing response:", error);
-        return { error: "Failed to process Claude's response." };
-      });
-  }
+    .catch((error) => {
+      console.error("Error processing Claude's response:", error);
+      return { error: `Failed to process Claude's response: ${error.message}` };
+    });
+}
 
   /**
    * Search files for the given query
