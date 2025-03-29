@@ -16,7 +16,7 @@ class ClaudeResponseProcessor:
         self.response_parser = ResponseParser()
         self.results = {
             'edited_files': [],
-            'moved_files': [],  # New field for tracking moved files
+            'moved_files': [],
             'errors': [],
             'success_count': 0,
             'error_count': 0
@@ -26,9 +26,10 @@ class ClaudeResponseProcessor:
         """
         Process the response from Claude and apply the edits.
         Groups edits by file and validates all search blocks for a file before applying changes.
+        Handles both XML format and legacy SEARCH/REPLACE format.
 
         Args:
-            claude_response: The text response from Claude containing edit blocks
+            claude_response: The text response from Claude containing edit blocks in XML format
 
         Returns:
             Dict: Results of the processing including success/failure counts and errors
@@ -36,7 +37,7 @@ class ClaudeResponseProcessor:
         # Reset results for this processing run
         self.results = {
             'edited_files': [],
-            'moved_files': [],  # New field for tracking moved files
+            'moved_files': [],
             'errors': [],
             'success_count': 0,
             'error_count': 0,
@@ -44,6 +45,9 @@ class ClaudeResponseProcessor:
             'files_skipped': []
         }
 
+        # Add debug logging
+        print("Processing Claude response - length:", len(claude_response))
+        
         # Parse the response into edit blocks
         parse_result = self.response_parser.parse_response(claude_response)
 

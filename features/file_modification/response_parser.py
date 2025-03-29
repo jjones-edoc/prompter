@@ -1,6 +1,7 @@
 import re
 from typing import List, Optional, Tuple, Dict
 from pathlib import Path
+import xml.etree.ElementTree as ET
 from features.file_modification.models import EditBlock, MoveOperation, ParseResult
 from features.file_modification.normalization import (
     normalize_line_endings,
@@ -14,19 +15,23 @@ class ResponseParser:
     """Parses AI responses into edit commands with line ending normalization"""
 
     # Constants for validation
-    MARKER_MIN_LENGTH = 5
     MAX_BLOCK_LINES = 1000
     MAX_LINE_LENGTH = 10000
 
-    # Regex patterns for code edit markers with strict formatting
-    VALID_MARKER_PATTERN = {
-        'head': r"^<{5,}\s*SEARCH\s*$",
-        'divider': r"^={5,}\s*$",
-        'tail': r"^>{5,}\s*REPLACE\s*$"
+    # XML tag patterns
+    XML_TAGS = {
+        'modify_code': 'ModifyCode',
+        'new_file': 'NewFile',
+        'delete_file': 'DeleteFile',
+        'move_file': 'MoveFile',
+        'replace_file': 'ReplaceFile',
+        'file': 'File',
+        'source': 'Source',
+        'destination': 'Destination',
+        'search': 'Search',
+        'replace': 'Replace',
+        'content': 'Content'
     }
-
-    # Regex pattern for file move directive
-    MOVE_FILE_PATTERN = r"^#MOVE_FILE:\s*([^\s]+)\s*->\s*([^\s]+)\s*$"
 
     def __init__(self, valid_files: List[str] = None):
         """
@@ -63,40 +68,205 @@ class ResponseParser:
 
         return normalized_path in self.valid_files
 
-    def is_marker(self, line: str, marker_type: str) -> bool:
+    def extract_xml_blocks(self, response_text: str) -> Tuple[List[Tuple[str, str, int]], List[str], List[Tuple[int, str]]]:
         """
-        Check if line matches exactly one of the valid marker patterns.
-
+        Extract XML blocks from the response text.
+        
         Args:
-            line: Line to check
-            marker_type: Type of marker to validate ('head', 'divider', or 'tail')
-
+            response_text: Full response text from the AI
+            
         Returns:
-            bool: True if marker is valid, False otherwise
+            Tuple containing:
+            - List of tuples (block_type, block_content, line_number)
+            - List of original XML blocks as strings
+            - List of errors (line_number, error_message)
         """
-        pattern = self.VALID_MARKER_PATTERN[marker_type]
-        return bool(re.match(pattern, normalize_marker(line)))
-
-    def is_move_directive(self, line: str) -> Tuple[bool, Optional[str], Optional[str]]:
+        print(f"Extracting XML blocks from response text - length: {len(response_text)}")
+        
+        lines = split_with_line_endings(response_text)
+        print(f"Split response into {len(lines)} lines")
+        
+        blocks = []
+        raw_blocks = []
+        errors = []
+        
+        # XML tags to look for
+        xml_tags = list(self.XML_TAGS.values())
+        opening_tags = [f"<{tag}>" for tag in xml_tags]
+        closing_tags = [f"</{tag}>" for tag in xml_tags]
+        
+        print(f"Looking for these XML tags: {xml_tags}")
+        
+        # Find XML blocks
+        i = 0
+        while i < len(lines):
+            try:
+                line = lines[i].strip()
+                
+                # Check for opening tags
+                for tag_idx, opening_tag in enumerate(opening_tags):
+                    if opening_tag in line:
+                        tag_name = xml_tags[tag_idx]
+                        closing_tag = closing_tags[tag_idx]
+                        block_start = i
+                        
+                        print(f"Found opening tag {opening_tag} at line {i+1}")
+                        
+                        # Find closing tag
+                        block_end = None
+                        for j in range(i, min(i + self.MAX_BLOCK_LINES, len(lines))):
+                            if closing_tag in lines[j]:
+                                block_end = j
+                                print(f"Found closing tag {closing_tag} at line {j+1}")
+                                break
+                        
+                        if block_end is None:
+                            print(f"ERROR: Missing closing tag {closing_tag} for {opening_tag}")
+                            errors.append((i + 1, f"Missing closing tag {closing_tag} for {opening_tag}"))
+                            i += 1
+                            break
+                        
+                        # Extract block content
+                        block_content = "".join(lines[block_start:block_end + 1])
+                        print(f"Extracted block content - length: {len(block_content)}")
+                        print(f"Block content preview: {block_content[:100]}..." if len(block_content) > 100 else block_content)
+                        
+                        raw_blocks.append(block_content)
+                        blocks.append((tag_name, block_content, block_start + 1))
+                        
+                        # Move to the end of the block
+                        i = block_end + 1
+                        break
+                else:
+                    # No opening tag found in this line
+                    i += 1
+            except Exception as e:
+                print(f"ERROR during XML extraction at line {i+1}: {str(e)}")
+                errors.append((i + 1, str(e)))
+                i += 1
+        
+        return blocks, raw_blocks, errors
+    
+    def parse_xml_content(self, xml_content: str) -> Optional[Dict]:
         """
-        Check if a line is a file move directive and extract source and destination paths.
-
+        Parse XML content into a structured dictionary.
+        
         Args:
-            line: Line to check
-
+            xml_content: XML content as string
+            
         Returns:
-            Tuple of (is_move_directive, source_path, dest_path)
+            Dictionary with parsed content or None if parsing failed
         """
-        match = re.match(self.MOVE_FILE_PATTERN, line.strip())
-        if match:
-            source_path, dest_path = match.groups()
-            return True, source_path, dest_path
-        return False, None, None
+        try:
+            # Add debug logging
+            print("Parsing XML content - length:", len(xml_content))
+            
+            # Skip XML sanitization entirely and use direct regex pattern matching
+            # This is more reliable for our specific XML format
+            result = {"tag": "ModifyCode"}  # Default to ModifyCode for now
+            
+            # Extract child elements directly using regex patterns
+            # These patterns work with raw XML without transformations
+            file_match = re.search(r'<File>(.*?)</File>', xml_content, re.DOTALL)
+            if file_match:
+                result["file"] = file_match.group(1).strip()
+                print(f"Found File tag with content: {result['file']}")
+            
+            # Modified search pattern extraction to handle empty lines after the opening tag
+            search_match = re.search(r'<Search>(.*?)</Search>', xml_content, re.DOTALL)
+            if search_match:
+                search_content = search_match.group(1)
+                # Check if search content has only a newline at the beginning
+                if search_content and (search_content.startswith('\r\n') or search_content.startswith('\n')):
+                    # Remove just the first newline (LF or CRLF)
+                    if search_content.startswith('\r\n'):
+                        search_content = search_content[2:]
+                    elif search_content.startswith('\n'):
+                        search_content = search_content[1:]
+                
+                result["search"] = search_content
+                print(f"Found Search tag with content length: {len(result['search'])}")
+            
+            # Modified replace pattern extraction to be consistent with search handling
+            replace_match = re.search(r'<Replace>(.*?)</Replace>', xml_content, re.DOTALL)
+            if replace_match:
+                replace_content = replace_match.group(1)
+                # Check if replace content has only a newline at the beginning
+                if replace_content and (replace_content.startswith('\r\n') or replace_content.startswith('\n')):
+                    # Remove just the first newline (LF or CRLF)
+                    if replace_content.startswith('\r\n'):
+                        replace_content = replace_content[2:]
+                    elif replace_content.startswith('\n'):
+                        replace_content = replace_content[1:]
+                
+                result["replace"] = replace_content
+                print(f"Found Replace tag with content length: {len(result['replace'])}")
+            
+            source_match = re.search(r'<Source>(.*?)</Source>', xml_content, re.DOTALL)
+            if source_match:
+                result["source"] = source_match.group(1).strip()
+                print(f"Found Source tag with content: {result['source']}")
+            
+            destination_match = re.search(r'<Destination>(.*?)</Destination>', xml_content, re.DOTALL)
+            if destination_match:
+                result["destination"] = destination_match.group(1).strip()
+                print(f"Found Destination tag with content: {result['destination']}")
+            
+            # Modified content pattern extraction to be consistent with search/replace handling
+            content_match = re.search(r'<Content>(.*?)</Content>', xml_content, re.DOTALL)
+            if content_match:
+                content_value = content_match.group(1)
+                # Check if content has only a newline at the beginning
+                if content_value and (content_value.startswith('\r\n') or content_value.startswith('\n')):
+                    # Remove just the first newline (LF or CRLF)
+                    if content_value.startswith('\r\n'):
+                        content_value = content_value[2:]
+                    elif content_value.startswith('\n'):
+                        content_value = content_value[1:]
+                
+                result["content"] = content_value
+                print(f"Found Content tag with content length: {len(result['content'])}")
+            
+            # Extract the tag name itself
+            tag_match = re.match(r'<(\w+)>', xml_content)
+            if tag_match:
+                result["tag"] = tag_match.group(1)
+                print(f"Found root tag: {result['tag']}")
+            
+            # Verify we have the minimum required elements for a valid operation
+            # This depends on the operation type
+            if result["tag"] == "ModifyCode":
+                if not all(key in result for key in ["file", "search", "replace"]):
+                    missing = [key for key in ["file", "search", "replace"] if key not in result]
+                    raise Exception(f"Missing required elements for ModifyCode: {', '.join(missing)}")
+            elif result["tag"] == "NewFile":
+                if not all(key in result for key in ["file", "content"]):
+                    missing = [key for key in ["file", "content"] if key not in result]
+                    raise Exception(f"Missing required elements for NewFile: {', '.join(missing)}")
+            elif result["tag"] == "DeleteFile":
+                if "file" not in result:
+                    raise Exception("Missing required 'file' element for DeleteFile")
+            elif result["tag"] == "MoveFile":
+                if not all(key in result for key in ["source", "destination"]):
+                    missing = [key for key in ["source", "destination"] if key not in result]
+                    raise Exception(f"Missing required elements for MoveFile: {', '.join(missing)}")
+            elif result["tag"] == "ReplaceFile":
+                if not all(key in result for key in ["file", "content"]):
+                    missing = [key for key in ["file", "content"] if key not in result]
+                    raise Exception(f"Missing required elements for ReplaceFile: {', '.join(missing)}")
+            
+            print(f"Successfully extracted XML with {len(result)} elements")
+            return result
+                
+        except Exception as e:
+            # Add error logging
+            print(f"XML parsing error: {str(e)}")
+            return None
 
     def parse_response(self, response_text: str) -> ParseResult:
         """
         Parse the AI response into a list of edit blocks with error tracking.
-        Handles mixed line endings and preserves whitespace.
+        Handles XML format and preserves whitespace.
 
         Args:
             response_text: The full response text from the AI
@@ -106,222 +276,207 @@ class ResponseParser:
         """
         self.active_file = None
         blocks = []
-        move_operations = []  # New list for move operations
+        move_operations = []
         errors = []
 
-        # Use the utility function to split text while preserving line endings
-        lines = split_with_line_endings(response_text)
+        # Extract XML blocks
+        xml_blocks, raw_blocks, extract_errors = self.extract_xml_blocks(response_text)
+        errors.extend(extract_errors)
 
-        if not lines:
-            return ParseResult(blocks=[], move_operations=[], errors=[])
+        if not xml_blocks:
+            return ParseResult(blocks=[], move_operations=[], errors=errors)
 
-        in_block = False
-        i = 0
-        while i < len(lines):
+        # Process each XML block
+        for tag_name, block_content, line_number in xml_blocks:
             try:
-                # Check line length
-                if len(lines[i]) > self.MAX_LINE_LENGTH:
-                    raise ValueError(
-                        f"Line exceeds maximum length of {self.MAX_LINE_LENGTH} characters")
-
-                # Skip empty lines
-                if not lines[i].rstrip('\r\n'):
-                    i += 1
+                parsed_content = self.parse_xml_content(block_content)
+                if not parsed_content:
+                    errors.append((line_number, f"Failed to parse {tag_name} XML block"))
                     continue
 
-                line = lines[i].rstrip('\r\n')
-
-                # Check for file move directive
-                is_move, source_path, dest_path = self.is_move_directive(line)
-                if is_move:
-                    # Validate source and destination paths
-                    if not self.validate_file_path(source_path):
-                        raise ValueError(
-                            f"Invalid source path in move directive: {source_path}")
-                    if not self.validate_file_path(dest_path):
-                        raise ValueError(
-                            f"Invalid destination path in move directive: {dest_path}")
-
-                    # Create move operation
-                    move_op = MoveOperation(
-                        source_path=source_path,
-                        dest_path=dest_path,
-                        line_number=i + 1,
-                        raw_command=line
-                    )
-                    move_operations.append(move_op)
-                    i += 1
-                    continue
-
-                # Not in a block - look for file path or start marker
-                if not in_block:
-                    # Check for misplaced markers
-                    if self.is_marker(line, 'divider'):
-                        raise ValueError(
-                            "Found divider marker without preceding SEARCH marker")
-                    if self.is_marker(line, 'tail'):
-                        raise ValueError(
-                            "Found REPLACE marker without preceding SEARCH marker")
-
-                    # Check for file path
-                    if not self.is_marker(line, 'head'):
-                        if self.validate_file_path(line):
-                            self.active_file = Path(line.strip()).as_posix()
-                        i += 1
-                        continue
-
-                    # Start of new block
-                    if self.is_marker(line, 'head'):
-                        in_block = True
-                        block_start = i
-
-                # Inside a block
+                # Process based on block type
+                if tag_name == self.XML_TAGS['modify_code']:
+                    edit_block = self._process_modify_code(parsed_content, line_number, block_content)
+                    if edit_block:
+                        blocks.append(edit_block)
+                    else:
+                        errors.append((line_number, f"Invalid {tag_name} block format"))
+                
+                elif tag_name == self.XML_TAGS['new_file']:
+                    edit_block = self._process_new_file(parsed_content, line_number, block_content)
+                    if edit_block:
+                        blocks.append(edit_block)
+                    else:
+                        errors.append((line_number, f"Invalid {tag_name} block format"))
+                
+                elif tag_name == self.XML_TAGS['delete_file']:
+                    edit_block = self._process_delete_file(parsed_content, line_number, block_content)
+                    if edit_block:
+                        blocks.append(edit_block)
+                    else:
+                        errors.append((line_number, f"Invalid {tag_name} block format"))
+                
+                elif tag_name == self.XML_TAGS['replace_file']:
+                    edit_block = self._process_replace_file(parsed_content, line_number, block_content)
+                    if edit_block:
+                        blocks.append(edit_block)
+                    else:
+                        errors.append((line_number, f"Invalid {tag_name} block format"))
+                
+                elif tag_name == self.XML_TAGS['move_file']:
+                    move_op = self._process_move_file(parsed_content, line_number, block_content)
+                    if move_op:
+                        move_operations.append(move_op)
+                    else:
+                        errors.append((line_number, f"Invalid {tag_name} block format"))
+                
                 else:
-                    if self.is_marker(line, 'head'):
-                        raise ValueError(
-                            "Found new SEARCH marker before previous block was closed")
+                    errors.append((line_number, f"Unknown XML tag: {tag_name}"))
 
-                    if self.is_marker(line, 'tail'):
-                        # Process the completed block
-                        block, next_line = self._parse_edit_block(
-                            lines, block_start)
-                        if block:
-                            blocks.append(block)
-                        in_block = False
-                        i = next_line
-                        continue
-
-                i += 1
-
-            except ValueError as e:
-                errors.append((i + 1, str(e)))
-                # Skip to next potential block
-                while i < len(lines) and not self.is_marker(lines[i].rstrip('\r\n'), 'head'):
-                    i += 1
-                in_block = False
-
-        # Check if we ended while still in a block
-        if in_block:
-            errors.append(
-                (len(lines), "Reached end of input while still in an edit block"))
+            except Exception as e:
+                errors.append((line_number, f"Error processing {tag_name} block: {str(e)}"))
 
         return ParseResult(blocks=blocks, move_operations=move_operations, errors=errors)
 
-    def _parse_edit_block(self, lines: List[str], start_idx: int) -> Tuple[Optional[EditBlock], int]:
-        """Parse a single edit block starting from the HEAD marker"""
-        if not self.active_file:
-            raise ValueError("No active file when parsing edit block")
+    def _process_modify_code(self, parsed_content: Dict, line_number: int, raw_command: str) -> Optional[EditBlock]:
+        """Process ModifyCode XML block"""
+        try:
+            if not all(key in parsed_content for key in ['file', 'search', 'replace']):
+                return None
+            
+            file_path = parsed_content['file']
+            search_text = parsed_content['search']
+            replace_text = parsed_content['replace']
+            
+            if not self.validate_file_path(file_path):
+                return None
+            
+            # Create EditBlock object
+            self.active_file = Path(file_path.strip()).as_posix()
+            
+            # Normalize text for comparison
+            normalized_search = normalize_line_endings(search_text)
+            normalized_replace = normalize_line_endings(replace_text)
+            
+            edit_block = EditBlock(
+                file_path=self.active_file,
+                search_text=search_text,
+                replace_text=replace_text,
+                raw_command=raw_command,
+                line_number=line_number,
+                normalized_search=normalized_search,
+                normalized_replace=normalized_replace
+            )
+            
+            return edit_block
+        except Exception:
+            return None
 
-        if start_idx >= len(lines):
-            return None, start_idx
+    def _process_new_file(self, parsed_content: Dict, line_number: int, raw_command: str) -> Optional[EditBlock]:
+        """Process NewFile XML block"""
+        try:
+            if not all(key in parsed_content for key in ['file', 'content']):
+                return None
+            
+            file_path = parsed_content['file']
+            content = parsed_content['content']
+            
+            if not self.validate_file_path(file_path):
+                return None
+            
+            self.active_file = Path(file_path.strip()).as_posix()
+            
+            # For new files, search is empty and replace contains the content
+            edit_block = EditBlock(
+                file_path=self.active_file,
+                search_text="",
+                replace_text=content,
+                raw_command=raw_command,
+                line_number=line_number,
+                normalized_search="",
+                normalized_replace=normalize_line_endings(content)
+            )
+            
+            return edit_block
+        except Exception:
+            return None
 
-        # Check block size
-        if len(lines) - start_idx > self.MAX_BLOCK_LINES:
-            raise ValueError(
-                f"Edit block exceeds maximum size of {self.MAX_BLOCK_LINES} lines")
+    def _process_delete_file(self, parsed_content: Dict, line_number: int, raw_command: str) -> Optional[EditBlock]:
+        """Process DeleteFile XML block"""
+        try:
+            if 'file' not in parsed_content:
+                return None
+            
+            file_path = parsed_content['file']
+            
+            if not self.validate_file_path(file_path):
+                return None
+            
+            self.active_file = Path(file_path.strip()).as_posix()
+            
+            # For delete files, search is "#ENTIRE_FILE" and replace is empty
+            edit_block = EditBlock(
+                file_path=self.active_file,
+                search_text="#ENTIRE_FILE",
+                replace_text="",
+                raw_command=raw_command,
+                line_number=line_number,
+                normalized_search="#ENTIRE_FILE",
+                normalized_replace=""
+            )
+            
+            return edit_block
+        except Exception:
+            return None
 
-        # Validate HEAD marker
-        if not self.is_marker(lines[start_idx].strip(), 'head'):
-            raise ValueError("Invalid or missing HEAD marker")
+    def _process_replace_file(self, parsed_content: Dict, line_number: int, raw_command: str) -> Optional[EditBlock]:
+        """Process ReplaceFile XML block"""
+        try:
+            if not all(key in parsed_content for key in ['file', 'content']):
+                return None
+            
+            file_path = parsed_content['file']
+            content = parsed_content['content']
+            
+            if not self.validate_file_path(file_path):
+                return None
+            
+            self.active_file = Path(file_path.strip()).as_posix()
+            
+            # For replace files, search is "#ENTIRE_FILE" and replace contains the new content
+            edit_block = EditBlock(
+                file_path=self.active_file,
+                search_text="#ENTIRE_FILE",
+                replace_text=content,
+                raw_command=raw_command,
+                line_number=line_number,
+                normalized_search="#ENTIRE_FILE",
+                normalized_replace=normalize_line_endings(content)
+            )
+            
+            return edit_block
+        except Exception:
+            return None
 
-        # Find section boundaries
-        divider_idx = None
-        tail_idx = None
-        block_lines = [lines[start_idx]]
-
-        i = start_idx + 1
-        while i < len(lines):
-            line = lines[i].strip()
-            block_lines.append(lines[i])
-
-            if self.is_marker(line, 'divider'):
-                if divider_idx is not None:
-                    raise ValueError("Multiple divider markers found in block")
-                divider_idx = i
-            elif self.is_marker(line, 'tail'):
-                tail_idx = i
-                break
-            i += 1
-
-        if not divider_idx:
-            raise ValueError("Missing divider marker in block")
-        if not tail_idx:
-            raise ValueError("Missing REPLACE marker in block")
-        if not (start_idx < divider_idx < tail_idx):
-            raise ValueError("Invalid edit block structure")
-
-        # Extract both original and normalized versions using the utility function
-        search_text, norm_search = extract_and_normalize_text(
-            lines, start_idx + 1, divider_idx)
-        replace_text, norm_replace = extract_and_normalize_text(
-            lines, divider_idx + 1, tail_idx)
-
-        # Build raw command (preserve original line endings)
-        raw_lines = [self.active_file] + lines[start_idx:tail_idx + 1]
-        raw_command = "".join(
-            line if line.endswith(('\r\n', '\n', '\r')) else line + '\n'
-            for line in raw_lines
-        )
-
-        block = EditBlock(
-            file_path=self.active_file,
-            search_text=search_text,
-            replace_text=replace_text,
-            raw_command=raw_command,
-            line_number=start_idx + 1,
-            normalized_search=norm_search,
-            normalized_replace=norm_replace
-        )
-
-        self.validate_edit_block(block)
-        return block, tail_idx + 1
-
-    def validate_edit_block(self, block: EditBlock) -> None:
-        """
-        Validate an edit block's format and content.
-        Ensures:
-        - Valid file path
-        - Non-empty search/replace text
-        - Required markers present
-        - Search text preserves exact whitespace for matching
-        - Line endings are properly normalized for comparison
-
-        Args:
-            block: EditBlock to validate
-
-        Raises:
-            ValueError: If the block is invalid
-        """
-        # Check file path
-        if not self.validate_file_path(block.file_path):
-            raise ValueError(f"Invalid file path: {block.file_path}")
-
-        # Check search and replace text
-        if block.normalized_search.strip() == "" and block.normalized_replace.strip() == "":
-            raise ValueError("Both search and replace text cannot be empty")
-
-        # Verify normalization was successful
-        if '\r' in block.normalized_search or '\r' in block.normalized_replace:
-            raise ValueError("Line ending normalization failed")
-
-        # Validate markers in raw command
-        lines = normalize_line_endings(block.raw_command).splitlines()
-        found_markers = {
-            'head': False,
-            'divider': False,
-            'tail': False
-        }
-
-        for line in lines:
-            line = line.strip()
-            if self.is_marker(line, 'head'):
-                found_markers['head'] = True
-            elif self.is_marker(line, 'divider'):
-                found_markers['divider'] = True
-            elif self.is_marker(line, 'tail'):
-                found_markers['tail'] = True
-
-        if not all(found_markers.values()):
-            missing = [k for k, v in found_markers.items() if not v]
-            raise ValueError(
-                f"Edit block missing required markers: {', '.join(missing)}")
+    def _process_move_file(self, parsed_content: Dict, line_number: int, raw_command: str) -> Optional[MoveOperation]:
+        """Process MoveFile XML block"""
+        try:
+            if not all(key in parsed_content for key in ['source', 'destination']):
+                return None
+            
+            source_path = parsed_content['source']
+            dest_path = parsed_content['destination']
+            
+            if not self.validate_file_path(source_path) or not self.validate_file_path(dest_path):
+                return None
+            
+            move_operation = MoveOperation(
+                source_path=source_path,
+                dest_path=dest_path,
+                line_number=line_number,
+                raw_command=raw_command
+            )
+            
+            return move_operation
+        except Exception:
+            return None

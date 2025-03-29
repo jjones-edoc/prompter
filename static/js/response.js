@@ -38,6 +38,9 @@ const ResponseDialog = (function () {
 
   function renderProcessingResults(data) {
     if (!data) return "";
+    
+    // Log data being processed for UI rendering
+    console.log('Rendering response processing results:', data);
 
     let statusType = "success";
     let statusMessage = "";

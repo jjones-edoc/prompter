@@ -15,6 +15,9 @@ class EditBlock:
     line_number: int
     normalized_search: str  # Text with normalized line endings for comparison
     normalized_replace: str  # Text with normalized line endings for comparison
+    
+    # Optional field to track the type of edit operation for XML format
+    operation_type: str = None
 
 
 @dataclass
@@ -30,5 +33,19 @@ class MoveOperation:
 class ParseResult:
     """Contains parsing results and any errors"""
     blocks: List[EditBlock]
-    move_operations: List[MoveOperation]  # New field for move operations
+    move_operations: List[MoveOperation]
     errors: List[Tuple[int, str]]  # Line number and error message
+
+
+@dataclass
+class XMLEditRequest:
+    """Represents a parsed XML edit request with structured fields"""
+    tag: str
+    file_path: Optional[str] = None
+    search_text: Optional[str] = None
+    replace_text: Optional[str] = None
+    content: Optional[str] = None
+    source_path: Optional[str] = None
+    destination_path: Optional[str] = None
+    line_number: int = 0
+    raw_command: str = ""
