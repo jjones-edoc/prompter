@@ -5,13 +5,8 @@ const GenerateDialog = (function () {
 
     return `
       <div class="card shadow-sm mb-4">
-        <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
+        <div class="card-header card-header-themed">
           <h2 class="h4 mb-0">Prompt Builder</h2>
-          <div>
-            <button id="generate-prompt-btn" class="btn btn-primary btn-sm">
-              <i class="fas fa-wand-magic-sparkles me-1"></i> Generate Prompt
-            </button>
-          </div>
         </div>
         <div class="card-body">
           <!-- Element Management Section -->
@@ -44,26 +39,27 @@ const GenerateDialog = (function () {
             </div>
           </div>
 
-          <!-- Generated Prompt Section -->
-          <div class="generated-prompt mb-4">
+          <!-- Generated Prompt Section (hidden by default) -->
+          <div class="generated-prompt mb-4 d-none" id="generated-prompt-section">
             <div class="card border">
-              <div class="card-header bg-light d-flex justify-content-between align-items-center">
+              <div class="card-header bg-light">
                 <h3 class="h5 mb-0">Generated Prompt</h3>
-                <div>
-                  <button id="toggle-prompt-btn" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-eye me-1"></i> Show
-                  </button>
-                </div>
               </div>
               <div class="card-body">
-                <textarea id="prompt-content" class="form-control bg-light d-none" rows="15">${state.generatedContent || ""}</textarea>
+                <textarea id="prompt-content" class="form-control bg-light" rows="15">${state.generatedContent || ""}</textarea>
               </div>
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div class="d-flex flex-wrap gap-2 justify-content-between">
-            <div>
+            <div class="d-flex gap-2">
+              <button id="toggle-prompt-btn" class="btn btn-outline-secondary">
+                <i class="fas fa-eye me-1"></i> Show Prompt
+              </button>
+              <button id="generate-prompt-btn" class="btn btn-primary">
+                <i class="fas fa-wand-magic-sparkles me-1"></i> Generate Prompt
+              </button>
               <button id="copy-button" class="btn btn-primary">
                 <i class="fas fa-copy me-1"></i> Copy to Clipboard
               </button>
@@ -253,27 +249,28 @@ const GenerateDialog = (function () {
 
     // Toggle prompt visibility
     Utilities.setupButtonListener("toggle-prompt-btn", function () {
-      const promptContent = document.getElementById("prompt-content");
-      if (promptContent.classList.contains("d-none")) {
-        // Show the prompt
-        promptContent.classList.remove("d-none");
-        this.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide';
+      const promptSection = document.getElementById("generated-prompt-section");
+      if (promptSection.classList.contains("d-none")) {
+        // Show the prompt section
+        promptSection.classList.remove("d-none");
+        this.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide Prompt';
       } else {
-        // Hide the prompt
-        promptContent.classList.add("d-none");
-        this.innerHTML = '<i class="fas fa-eye me-1"></i> Show';
+        // Hide the prompt section
+        promptSection.classList.add("d-none");
+        this.innerHTML = '<i class="fas fa-eye me-1"></i> Show Prompt';
       }
     });
 
     // Copy to clipboard
     Utilities.setupButtonListener("copy-button", function () {
       const promptContent = document.getElementById("prompt-content");
+      const promptSection = document.getElementById("generated-prompt-section");
       // Save current visibility state
-      const wasHidden = promptContent.classList.contains("d-none");
+      const wasSectionHidden = promptSection.classList.contains("d-none");
 
-      // If hidden, temporarily show it to allow selection
-      if (wasHidden) {
-        promptContent.classList.remove("d-none");
+      // If section is hidden, temporarily show it to allow selection
+      if (wasSectionHidden) {
+        promptSection.classList.remove("d-none");
       }
 
       Utilities.copyToClipboard(
@@ -293,9 +290,9 @@ const GenerateDialog = (function () {
         }
       );
 
-      // If it was hidden, hide it again
-      if (wasHidden) {
-        promptContent.classList.add("d-none");
+      // If section was hidden, hide it again
+      if (wasSectionHidden) {
+        promptSection.classList.add("d-none");
       }
     });
 
