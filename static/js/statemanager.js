@@ -7,8 +7,6 @@ const StateManager = (function () {
     // Prompt dialog state
     promptDialogState: {
       userPrompt: "",
-      includeCodingPrompt: false,
-      includeDirectoryStructure: false,
       editingElementIndex: null,
       isCreatingNew: false,
     },
@@ -187,8 +185,6 @@ const StateManager = (function () {
     state = {
       promptDialogState: {
         userPrompt: "",
-        includeCodingPrompt: false,
-        includeDirectoryStructure: false,
         editingElementIndex: null,
         isCreatingNew: false,
       },

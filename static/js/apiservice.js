@@ -142,45 +142,7 @@ const ApiService = (function () {
       });
   }
 
-  /**
-   * Generate combined content from selected files and options
-   * @param {Object} options - Options for generating content
-   * @returns {Promise} Promise resolving to combined content
-   */
-  function generateCombinedContent(options) {
-    const formData = new FormData();
-
-    // Add selected files
-    if (options.selectedFiles && options.selectedFiles.length > 0) {
-      options.selectedFiles.forEach((file) => {
-        formData.append("selected_files", file);
-      });
-    }
-
-    // Add selected folders
-    if (options.selectedFolders && options.selectedFolders.length > 0) {
-      options.selectedFolders.forEach((folder) => {
-        formData.append("selected_folder", folder);
-      });
-    }
-
-    // Add user prompt
-    formData.append("user_prompt", options.userPrompt || "");
-
-    // Add checkbox options
-    formData.append("include_coding_prompt", options.includeCodingPrompt ? "1" : "0");
-    formData.append("include_directory_structure", options.includeDirectoryStructure ? "1" : "0");
-
-    return fetch("/api/generate", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .catch((error) => {
-        console.error("Error generating content:", error);
-        return { error: "Failed to generate content." };
-      });
-  }
+  // generateCombinedContent function removed as it's no longer used
 
   /**
    * Generate content using the new modular endpoints
@@ -369,7 +331,6 @@ function processClaudeResponse(claudeResponse) {
     fetchFileData,
     fetchPlanningPrompt,
     fetchEditingPrompt,
-    generateCombinedContent,
     generateModularContent,
     processClaudeResponse,
     searchFiles,
