@@ -174,66 +174,6 @@ const StateManager = (function () {
     state.currentDialog = dialogName;
   }
 
-  /**
-   * Reset state to initial values
-   * Optionally preserve directory structure
-   * @param {boolean} preserveDirectoryStructure - Whether to preserve directory structure
-   */
-  function resetState(preserveDirectoryStructure = true) {
-    const directoryStructure = preserveDirectoryStructure ? state.fileSelectorState.directoryStructure : null;
-
-    state = {
-      promptDialogState: {
-        userPrompt: "",
-        editingElementIndex: null,
-        isCreatingNew: false,
-      },
-      fileSelectorState: {
-        directoryStructure: directoryStructure,
-        selectedFiles: [],
-        selectedFolders: [],
-        tokenCount: 0,
-        searchResults: null,
-        editingElementIndex: null,
-        isCreatingNew: false,
-      },
-      generateDialogState: {
-        generatedContent: "",
-        promptElements: [],
-        availableElementTypes: [
-          {
-            id: "userPrompt",
-            name: "User Prompt",
-            description: "Your custom instructions for Claude",
-            enabled: true,
-          },
-          {
-            id: "selectedFiles",
-            name: "Selected Files",
-            description: "Content from specific files you've selected",
-            enabled: true,
-          },
-          {
-            id: "codingPrompt",
-            name: "Coding Prompt",
-            description: "Expert code editing instructions for Claude",
-            enabled: true,
-          },
-          {
-            id: "directoryStructure",
-            name: "Directory Structure",
-            description: "Project directory/file structure to provide context",
-            enabled: true,
-          },
-        ],
-      },
-      responseDialogState: {
-        claudeResponse: "",
-        processingResults: null,
-      },
-      currentDialog: "prompt", // Keeping as "prompt" for now for compatibility
-    };
-  }
 
   // Public API
   return {
@@ -241,7 +181,6 @@ const StateManager = (function () {
     updateState,
     updateDialogState,
     setCurrentDialog,
-    resetState,
     // New methods for prompt element management
     addPromptElement,
     removePromptElement,

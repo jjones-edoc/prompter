@@ -435,12 +435,6 @@ const DialogControllers = (function () {
         renderCurrentDialog();
       },
 
-      // Restart the process
-      onRestart: function () {
-        // Clear state and stay on generate dialog
-        StateManager.resetState();
-        renderCurrentDialog();
-      },
     });
 
     // If we have generated content, populate the textarea

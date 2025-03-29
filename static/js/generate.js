@@ -67,15 +67,6 @@ const GenerateDialog = (function () {
               <button id="copy-button" class="btn btn-primary">
                 <i class="fas fa-copy me-1"></i> Copy to Clipboard
               </button>
-              <button id="edit-prompt-btn" class="btn btn-secondary ms-2">
-                <i class="fas fa-edit me-1"></i> Edit User Prompt
-              </button>
-              <button id="select-files-btn" class="btn btn-secondary ms-2">
-                <i class="fas fa-file me-1"></i> Select Files
-              </button>
-              <button id="restart-button" class="btn btn-outline-secondary ms-2">
-                <i class="fas fa-redo me-1"></i> Start New
-              </button>
             </div>
             <div>
               <button id="response-button" class="btn btn-success">
@@ -308,19 +299,6 @@ const GenerateDialog = (function () {
       }
     });
 
-    // Edit user prompt button
-    Utilities.setupButtonListener("edit-prompt-btn", function () {
-      if (callbacks && callbacks.onEditPrompt) {
-        callbacks.onEditPrompt();
-      }
-    });
-
-    // Select files button
-    Utilities.setupButtonListener("select-files-btn", function () {
-      if (callbacks && callbacks.onSelectFiles) {
-        callbacks.onSelectFiles();
-      }
-    });
 
     // Go to response button
     Utilities.setupButtonListener("response-button", function () {
@@ -329,12 +307,6 @@ const GenerateDialog = (function () {
       }
     });
 
-    // Restart button
-    Utilities.setupButtonListener("restart-button", function () {
-      if (callbacks && callbacks.onRestart) {
-        callbacks.onRestart();
-      }
-    });
   }
 
   function setupElementControlButtons(callbacks) {
