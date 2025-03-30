@@ -89,12 +89,10 @@ const Utilities = (function () {
   /**
    * Show an error message
    * @param {string} message - Error message to display
-   * @param {string} containerId - DEPRECATED - ID of the container, no longer used
-   * @param {string} errorId - DEPRECATED - ID for the error element, no longer used
    * @param {number} durationMs - Duration in milliseconds before auto-close
    * @returns {HTMLElement} The created snack bar element
    */
-  function showError(message, containerId = null, errorId = null, durationMs = 3000) {
+  function showError(message, durationMs = 3000) {
     return showSnackBar(message, "error", durationMs);
   }
 

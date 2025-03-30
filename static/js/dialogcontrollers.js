@@ -479,8 +479,6 @@ const DialogControllers = (function () {
           selectedFolders = element.folders || [];
           break;
         case "codingPrompt":
-          // For backward compatibility - the "codingPrompt" element type maps to
-          // both planning and editing prompts in the new modular approach
           includePlanningPrompt = true;
           includeEditingPrompt = true;
           break;

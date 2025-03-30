@@ -27,7 +27,6 @@ const ResponseDialog = (function () {
             </a>
           </div>
 
-          <!-- Removed inline alert -->
           <div id="process-results" class="mt-3">
             ${renderProcessingResults(state.processingResults)}
           </div>

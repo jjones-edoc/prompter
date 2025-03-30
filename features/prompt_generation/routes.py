@@ -22,8 +22,6 @@ def register_prompt_generation_routes(app, scanner):
 
         return render_template('main.html')
 
-    # /api/generate endpoint removed since we're using modular endpoints now
-
     @app.route('/api/directory-structure', methods=['POST'])
     def api_directory_structure():
         """API endpoint to get the project directory structure"""
