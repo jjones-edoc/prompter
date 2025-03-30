@@ -586,12 +586,47 @@ const DialogControllers = (function () {
    * @param {string} response - Claude's response text
    */
   function processClaudeResponse(response) {
+    // Show processing status
+    const processResults = document.getElementById("process-results");
+    if (processResults) {
+      processResults.innerHTML = `
+        <div class="alert alert-info">
+          <i class="fas fa-spinner fa-spin me-2"></i> Processing response...
+        </div>
+      `;
+    }
+
+    // Show info snackbar
+    Utilities.showSnackBar("Processing Claude's response...", "info");
+
     ApiService.processClaudeResponse(response).then((data) => {
       // Update state with processing results
       StateManager.updateDialogState("response", { processingResults: data });
 
+      // Show success or error message
+      if (data.success) {
+        Utilities.showSnackBar(`Successfully processed ${data.success_count} edit(s)`, "success");
+      } else if (data.error) {
+        Utilities.showSnackBar(`Error: ${data.error}`, "error");
+      } else if (data.error_count > 0) {
+        Utilities.showSnackBar(`Completed with ${data.error_count} error(s)`, "warning");
+      }
+
       // Re-render the response dialog to reflect updated state
       renderResponseDialog();
+    }).catch(error => {
+      console.error("Error processing response:", error);
+      
+      // Show error in the UI
+      if (processResults) {
+        processResults.innerHTML = `
+          <div class="alert alert-danger">
+            <strong>Error:</strong> Failed to process response. See console for details.
+          </div>
+        `;
+      }
+      
+      Utilities.showSnackBar("Failed to process response", "error");
     });
   }
 

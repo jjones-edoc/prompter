@@ -244,9 +244,6 @@ const ApiService = (function () {
           });
         }
 
-        // Add user prompt at the end
-        combinedContent += `### User Query:\n\n${options.userPrompt || ""}`;
-
         // Return the combined content
         return {
           combined_content: combinedContent,

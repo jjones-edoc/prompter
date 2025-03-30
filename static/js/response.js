@@ -41,18 +41,37 @@ const ResponseDialog = (function () {
     // Log data being processed for UI rendering
     console.log('Rendering response processing results:', data);
 
+    // Handle error message from API
+    if (data.error) {
+      return `
+        <div class="alert alert-danger">
+          <strong>Error:</strong> ${data.error}
+        </div>
+      `;
+    }
+
     let statusType = "success";
     let statusMessage = "";
 
-    if (data.success) {
+    // Handle success case
+    if (data.success_count > 0 || data.edited_files?.length > 0 || data.moved_files?.length > 0) {
       // Create a detailed status message
-      statusMessage = `<strong>${data.message}</strong><br>`;
+      statusMessage = `<strong>${data.message || "Processing completed successfully"}</strong><br>`;
 
       // Add list of edited files if any
       if (data.edited_files && data.edited_files.length > 0) {
         statusMessage += "<div class='mt-2'>Edited files:</div><ul>";
         data.edited_files.forEach((file) => {
           statusMessage += `<li>${file}</li>`;
+        });
+        statusMessage += "</ul>";
+      }
+
+      // Add list of moved files if any
+      if (data.moved_files && data.moved_files.length > 0) {
+        statusMessage += "<div class='mt-2'>Moved files:</div><ul>";
+        data.moved_files.forEach((move) => {
+          statusMessage += `<li>From: ${move.source} → To: ${move.destination}</li>`;
         });
         statusMessage += "</ul>";
       }
@@ -65,6 +84,30 @@ const ResponseDialog = (function () {
           let errorMsg = `<li>`;
           if (error.file) {
             errorMsg += `<strong>${error.file}</strong>: `;
+          } else if (error.source && error.destination) {
+            errorMsg += `<strong>Move from ${error.source} to ${error.destination}</strong>: `;
+          }
+          if (error.line) {
+            errorMsg += `(line ${error.line}) `;
+          }
+          errorMsg += `${error.message}</li>`;
+          statusMessage += errorMsg;
+        });
+        statusMessage += "</ul>";
+      }
+    } else if (data.error_count > 0) {
+      // Only errors occurred
+      statusType = "danger";
+      statusMessage = `<strong>${data.message || "Processing failed"}</strong><br>`;
+      
+      if (data.errors && data.errors.length > 0) {
+        statusMessage += "<div class='mt-2'>Errors:</div><ul>";
+        data.errors.forEach((error) => {
+          let errorMsg = `<li>`;
+          if (error.file) {
+            errorMsg += `<strong>${error.file}</strong>: `;
+          } else if (error.source && error.destination) {
+            errorMsg += `<strong>Move from ${error.source} to ${error.destination}</strong>: `;
           }
           if (error.line) {
             errorMsg += `(line ${error.line}) `;
@@ -75,12 +118,12 @@ const ResponseDialog = (function () {
         statusMessage += "</ul>";
       }
     } else {
-      // Error case
-      statusType = "danger";
-      statusMessage = `<strong>Error:</strong> ${data.error || "An unknown error occurred."}`;
+      // No changes made
+      statusType = "info";
+      statusMessage = "No file changes were made. Check your response format.";
     }
 
-    // Return the HTML string
+    // Return the HTML string with the results
     return `
       <div class="alert alert-${statusType}">
         ${statusMessage}
