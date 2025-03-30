@@ -6,7 +6,6 @@ from features.file_modification.models import EditBlock, MoveOperation, ParseRes
 from features.file_modification.normalization import (
     normalize_line_endings,
     extract_and_normalize_text,
-    normalize_marker,
     split_with_line_endings
 )
 

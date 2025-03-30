@@ -61,19 +61,6 @@ def extract_and_normalize_text(lines: List[str], start: int, end: int) -> Tuple[
     return original_text, normalized_text
 
 
-def normalize_marker(line: str) -> str:
-    """
-    Normalize marker line while preserving required parts.
-    Standardizes whitespace for comparison.
-
-    Args:
-        line: Marker line to normalize
-
-    Returns:
-        str: Normalized marker
-    """
-    return ' '.join(line.split())
-
 
 def split_with_line_endings(text: str) -> List[str]:
     """

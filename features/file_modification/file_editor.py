@@ -276,7 +276,7 @@ class FileEditor:
             with open(file_path_str, 'r', encoding=None) as f:
                 return f.read()
 
-    def apply_replacement(self, content: str, search_text: str, replace_text: str, strict_mode: bool = True) -> Optional[str]:
+    def apply_replacement(self, content: str, search_text: str, replace_text: str) -> Optional[str]:
         """
         Apply the replacement to the content. Handles append case and line ending normalization.
         Special marker #ENTIRE_FILE can be used to replace or delete the entire file.
@@ -285,7 +285,6 @@ class FileEditor:
             content: The content to modify
             search_text: Text to search for
             replace_text: Text to replace with
-            strict_mode: If True, requires exact match. If False, matches on alphanumeric and single spaces
 
         Returns:
             Modified content or None if search text not found
@@ -312,67 +311,10 @@ class FileEditor:
                 content += '\n'
             return content + replace_text
 
-        if strict_mode:
-            # Original exact matching behavior
-            if search_text not in content:
-                return None
-            return content.replace(search_text, replace_text, 1)
-        else:
-            # Non-strict matching based on alphanumeric and single spaces
-            import re
-
-            def normalize_line(line: str) -> str:
-                # Convert to lowercase and replace multiple spaces with single space
-                normalized = re.sub(r'\s+', ' ', line.lower())
-                # Keep only alphanumeric and single spaces
-                normalized = ''.join(
-                    c for c in normalized if c.isalnum() or c.isspace())
-                return normalized.strip()
-
-            # Split both content and search text into lines
-            content_lines = content.split('\n')
-            search_lines = [line for line in search_text.split(
-                '\n') if line.strip()]  # Ignore empty lines
-
-            if not search_lines:
-                return None
-
-            # Track start of potential match
-            start_idx = None
-            matched_lines = 0
-
-            # Go through content lines
-            for i, content_line in enumerate(content_lines):
-                # Skip empty content lines
-                if not content_line.strip():
-                    continue
-
-                # Compare normalized versions
-                if normalize_line(content_line) == normalize_line(search_lines[matched_lines]):
-                    # First match found
-                    if start_idx is None:
-                        start_idx = i
-                    matched_lines += 1
-
-                    # All lines matched
-                    if matched_lines == len(search_lines):
-                        # Get the exact original text that matched
-                        end_idx = i + 1
-                        original_section = '\n'.join(
-                            content_lines[start_idx:end_idx])
-
-                        # Replace the original section with new text
-                        return content.replace(original_section, replace_text, 1)
-                else:
-                    # Reset match tracking if line doesn't match
-                    start_idx = None
-                    matched_lines = 0
-                    # If this line matches first search line, start new potential match
-                    if normalize_line(content_line) == normalize_line(search_lines[0]):
-                        start_idx = i
-                        matched_lines = 1
-
+        # Original exact matching behavior
+        if search_text not in content:
             return None
+        return content.replace(search_text, replace_text, 1)
 
     def _write_file_safely(self, file_path: Path, content: str) -> Tuple[bool, Optional[str]]:
         """Write content to file using a temporary file for safety"""
