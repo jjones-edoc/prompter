@@ -49,7 +49,7 @@ const DialogControllers = (function () {
         // Reset editing state
         StateManager.updateDialogState("fileSelector", {
           editingElementIndex: null,
-          isCreatingNew: false
+          isCreatingNew: false,
         });
 
         // Go back to generate dialog
@@ -60,9 +60,9 @@ const DialogControllers = (function () {
         // Reset editing state before returning to generate dialog
         StateManager.updateDialogState("fileSelector", {
           editingElementIndex: null,
-          isCreatingNew: false
+          isCreatingNew: false,
         });
-        
+
         // Go back to generate dialog without saving changes
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
@@ -102,7 +102,7 @@ const DialogControllers = (function () {
       onSubmit: function (promptData) {
         const editingElementIndex = state.promptDialogState.editingElementIndex;
         const isCreatingNew = state.promptDialogState.isCreatingNew;
-        
+
         // Only proceed if the prompt has content
         if (promptData.prompt && promptData.prompt.trim() !== "") {
           // Check if we're editing an existing prompt element
@@ -124,7 +124,7 @@ const DialogControllers = (function () {
         // Reset editing state
         StateManager.updateDialogState("promptDialog", {
           editingElementIndex: null,
-          isCreatingNew: false
+          isCreatingNew: false,
         });
 
         // Go back to generate dialog
@@ -136,9 +136,9 @@ const DialogControllers = (function () {
         // Reset editing state before returning to generate dialog
         StateManager.updateDialogState("promptDialog", {
           editingElementIndex: null,
-          isCreatingNew: false
+          isCreatingNew: false,
         });
-        
+
         // Go back to generate dialog without saving changes
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
@@ -379,14 +379,14 @@ const DialogControllers = (function () {
           StateManager.updateDialogState("promptDialog", {
             userPrompt: elements[userPromptIndex].content || "",
             editingElementIndex: userPromptIndex,
-            isCreatingNew: false
+            isCreatingNew: false,
           });
         } else {
           // Creating a new prompt element
           StateManager.updateDialogState("promptDialog", {
             userPrompt: "",
             editingElementIndex: -1,
-            isCreatingNew: true
+            isCreatingNew: true,
           });
         }
 
@@ -406,7 +406,7 @@ const DialogControllers = (function () {
             selectedFiles: elements[filesElementIndex].files || [],
             selectedFolders: elements[filesElementIndex].folders || [],
             editingElementIndex: filesElementIndex,
-            isCreatingNew: false
+            isCreatingNew: false,
           });
         } else {
           // Create new files element
@@ -414,7 +414,7 @@ const DialogControllers = (function () {
             selectedFiles: [],
             selectedFolders: [],
             editingElementIndex: -1,
-            isCreatingNew: true
+            isCreatingNew: true,
           });
         }
 
@@ -434,34 +434,33 @@ const DialogControllers = (function () {
         StateManager.setCurrentDialog("response");
         renderCurrentDialog();
       },
-      
+
       // Send the prompt to AI model
       onSendToAI: function (promptContent) {
         // Show loading snackbar
         Utilities.showSnackBar("Sending prompt to AI model...", "info");
-        
+
         // Call the API to send prompt to AI
         ApiService.sendPromptToAI(promptContent).then((response) => {
           if (response.error) {
             Utilities.showSnackBar("Error getting AI response: " + response.error, "error");
             return;
           }
-          
+
           // Update response dialog state with the AI's response
-          StateManager.updateDialogState("response", {
+          StateManager.updateDialogState("responseDialog", {
             claudeResponse: response.text,
-            processingResults: null // Reset any previous processing results
+            processingResults: null, // Reset any previous processing results
           });
-          
+
           // Show success message
           Utilities.showSnackBar("AI response received successfully!", "success");
-          
+
           // Navigate to the response dialog
           StateManager.setCurrentDialog("response");
           renderCurrentDialog();
         });
       },
-
     });
 
     // If we have generated content, populate the textarea
@@ -544,15 +543,15 @@ const DialogControllers = (function () {
       if (promptContent) {
         promptContent.value = data.combined_content;
       }
-      
+
       // Do NOT automatically show the prompt section or change button text
       // Let the toggle button continue to control visibility
 
       // Show success snackbar
       Utilities.showSnackBar("Prompt generated successfully!", "success");
-      
+
       // Execute callback if provided
-      if (typeof callback === 'function') {
+      if (typeof callback === "function") {
         callback();
       }
     };
@@ -567,6 +566,7 @@ const DialogControllers = (function () {
   function renderResponseDialog() {
     const mainContent = document.getElementById("main-content");
     const state = StateManager.getState();
+    console.log("Rendering response dialog, state:", state.responseDialogState);
     mainContent.innerHTML = ResponseDialog.render(state.responseDialogState);
 
     ResponseDialog.setupEventListeners({
@@ -606,35 +606,37 @@ const DialogControllers = (function () {
     // Show info snackbar
     Utilities.showSnackBar("Processing Claude's response...", "info");
 
-    ApiService.processClaudeResponse(response).then((data) => {
-      // Update state with processing results
-      StateManager.updateDialogState("response", { processingResults: data });
+    ApiService.processClaudeResponse(response)
+      .then((data) => {
+        // Update state with processing results
+        StateManager.updateDialogState("responseDialog", { processingResults: data });
 
-      // Show success or error message
-      if (data.success) {
-        Utilities.showSnackBar(`Successfully processed ${data.success_count} edit(s)`, "success");
-      } else if (data.error) {
-        Utilities.showSnackBar(`Error: ${data.error}`, "error");
-      } else if (data.error_count > 0) {
-        Utilities.showSnackBar(`Completed with ${data.error_count} error(s)`, "warning");
-      }
+        // Show success or error message
+        if (data.success) {
+          Utilities.showSnackBar(`Successfully processed ${data.success_count} edit(s)`, "success");
+        } else if (data.error) {
+          Utilities.showSnackBar(`Error: ${data.error}`, "error");
+        } else if (data.error_count > 0) {
+          Utilities.showSnackBar(`Completed with ${data.error_count} error(s)`, "warning");
+        }
 
-      // Re-render the response dialog to reflect updated state
-      renderResponseDialog();
-    }).catch(error => {
-      console.error("Error processing response:", error);
-      
-      // Show error in the UI
-      if (processResults) {
-        processResults.innerHTML = `
+        // Re-render the response dialog to reflect updated state
+        renderResponseDialog();
+      })
+      .catch((error) => {
+        console.error("Error processing response:", error);
+
+        // Show error in the UI
+        if (processResults) {
+          processResults.innerHTML = `
           <div class="alert alert-danger">
             <strong>Error:</strong> Failed to process response. See console for details.
           </div>
         `;
-      }
-      
-      Utilities.showSnackBar("Failed to process response", "error");
-    });
+        }
+
+        Utilities.showSnackBar("Failed to process response", "error");
+      });
   }
 
   // Public API

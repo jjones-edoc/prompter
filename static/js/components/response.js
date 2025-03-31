@@ -1,5 +1,6 @@
 const ResponseDialog = (function () {
   function render(state) {
+    console.log("Rendering response dialog with state:", state);
     return `
       <div class="card shadow-sm mb-4">
         <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
