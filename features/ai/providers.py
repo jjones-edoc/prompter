@@ -8,6 +8,7 @@ import tiktoken
 from typing import Dict, Any, Literal
 import json
 import os
+import logging
 
 OPENAI_MODEL = "o3-mini"
 ANTHROPIC_MODEL = "claude-3-7-sonnet-20250219"
@@ -25,6 +26,40 @@ class AIProvider:
         self.provider = provider
         self.system_prompt = None
         self.reasoning_effort = DEFAULT_REASONING_EFFORT
+        self.logger = logging.getLogger(f"ai_provider.{provider}")
+
+        # Validate that the provider has necessary API keys (except for ollama)
+        if not self._check_api_key_available():
+            raise ValueError(
+                f"API key for {provider} is not available in environment variables")
+
+    def _check_api_key_available(self) -> bool:
+        """
+        Check if the required API key for the current provider is available.
+
+        Returns:
+            bool: True if the key is available or not needed, False otherwise
+        """
+        # Ollama is a local service and doesn't need an API key
+        if self.provider == "ollama":
+            return True
+
+        # Check appropriate environment variable for each provider
+        if self.provider == "openai":
+            return os.getenv("OPENAI_API_KEY") is not None
+        elif self.provider == "anthropic":
+            return os.getenv("ANTHROPIC_API_KEY") is not None
+        elif self.provider == "gemini":
+            return os.getenv("GOOGLE_API_KEY") is not None
+        elif self.provider == "mistral":
+            return os.getenv("MISTRAL_API_KEY") is not None
+        elif self.provider == "deepseek":
+            return os.getenv("DEEPSEEK_API_KEY") is not None
+        elif self.provider == "xai":
+            return os.getenv("XAI_API_KEY") is not None
+
+        # Default to False for unknown providers
+        return False
 
     def set_reasoning_effort(self, effort: Literal["low", "medium", "high"]):
         """Set the reasoning effort for OpenAI's o-series models."""
@@ -62,6 +97,8 @@ class AIProvider:
             raise ValueError(
                 f"Error initializing client for {self.provider}: {str(e)}")
 
+    # Rest of the existing methods remain unchanged...
+    # [All other methods in the original file would remain here]
     def _handle_openai_response(self, messages: list[Dict[str, str]]) -> Dict[str, Any]:
         try:
             with self._get_client() as client:
