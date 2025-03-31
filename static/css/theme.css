@@ -1,0 +1,20 @@
+/* Theme styles - Light and Dark mode */
+.card-header-themed {
+  background-color: #f8f9fa;
+}
+
+[data-bs-theme="dark"] .card-header-themed {
+  background-color: #212529;
+  color: #f8f9fa;
+  border-bottom: 1px solid #495057;
+}
+
+/* Keep h4 elements in the card header visible in dark mode */
+[data-bs-theme="dark"] .card-header-themed .h4 {
+  color: #f8f9fa;
+}
+
+/* Dark mode adjustments for other components */
+[data-bs-theme="dark"] .snack-bar {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}

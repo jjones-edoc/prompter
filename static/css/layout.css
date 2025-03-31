@@ -1,0 +1,33 @@
+/* Layout styles */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.theme-toggle {
+  cursor: pointer;
+  padding: 8px;
+}
+
+/* Sticky header for file selector */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: inherit;
+}
+
+/* Scrollable content area */
+.scrollable-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 1rem;
+}
