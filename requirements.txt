@@ -3,3 +3,4 @@ click
 setuptools
 tiktoken
 pathspec
+jsmin
