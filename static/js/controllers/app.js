@@ -7,9 +7,40 @@ const App = (function () {
    * Initialize the application
    */
   function init() {
+    // Initialize app settings from localStorage
+    const storedTheme = localStorage.getItem("theme");
+    const storedProvider = localStorage.getItem("defaultProvider");
+    const storedReasoningEffort = localStorage.getItem("reasoningEffort");
+    
+    // Update settings with stored values if available
+    StateManager.updateDialogState("settingsDialog", {
+      theme: storedTheme || "light",
+      defaultProvider: storedProvider || "anthropic",
+      reasoningEffort: storedReasoningEffort || "medium"
+    });
+    
+    // Apply theme
+    const currentTheme = StateManager.getState().settingsDialogState.theme;
+    document.documentElement.setAttribute("data-bs-theme", currentTheme);
+    
     // Update default dialog to generate
     StateManager.setCurrentDialog("generate");
     renderCurrentDialog();
+    
+    // Fetch available models in the background
+    fetch("/api/get_available_models")
+      .then(response => response.json())
+      .then(data => {
+        // Update settings state with available models
+        StateManager.updateDialogState("settingsDialog", {
+          availableModels: data.available_models || {},
+          defaultProvider: data.default_provider || StateManager.getState().settingsDialogState.defaultProvider,
+          reasoningEffort: data.default_reasoning_effort || StateManager.getState().settingsDialogState.reasoningEffort
+        });
+      })
+      .catch(error => {
+        console.error("Error fetching available models:", error);
+      });
   }
 
   /**
@@ -34,6 +65,9 @@ const App = (function () {
         break;
       case "response":
         DialogControllers.renderResponseDialog();
+        break;
+      case "settings":
+        DialogControllers.renderSettingsDialog();
         break;
     }
   }

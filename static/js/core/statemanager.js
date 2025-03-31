@@ -21,6 +21,14 @@ const StateManager = (function () {
       editingElementIndex: null,
       isCreatingNew: false,
     },
+    
+    // Settings dialog state
+    settingsDialogState: {
+      theme: localStorage.getItem("theme") || "light", // Get from localStorage or default to light
+      defaultProvider: "anthropic", // Default AI provider
+      reasoningEffort: "medium", // Default reasoning effort
+      availableModels: {}, // Will be populated from API
+    },
 
     // Generate dialog state - updated for new workflow
     generateDialogState: {
@@ -167,9 +175,33 @@ const StateManager = (function () {
    * @param {string} dialogName - Name of dialog to set active
    */
   function setCurrentDialog(dialogName) {
+    // Valid dialogs: "prompt", "fileSelector", "generate", "response", "settings"
     state.currentDialog = dialogName;
   }
 
+
+  /**
+   * Update settings with new values and save to localStorage
+   * @param {Object} newSettings - New settings to apply
+   */
+  function updateSettings(newSettings) {
+    // Update settings in state
+    state.settingsDialogState = { ...state.settingsDialogState, ...newSettings };
+    
+    // Save theme to localStorage for persistence
+    if (newSettings.theme) {
+      localStorage.setItem("theme", newSettings.theme);
+    }
+    
+    // Save other settings if needed
+    if (newSettings.defaultProvider) {
+      localStorage.setItem("defaultProvider", newSettings.defaultProvider);
+    }
+    
+    if (newSettings.reasoningEffort) {
+      localStorage.setItem("reasoningEffort", newSettings.reasoningEffort);
+    }
+  }
 
   // Public API
   return {
@@ -182,5 +214,7 @@ const StateManager = (function () {
     removePromptElement,
     reorderPromptElements,
     updatePromptElement,
+    // Settings management
+    updateSettings,
   };
 })();

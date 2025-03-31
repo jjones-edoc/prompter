@@ -31,3 +31,24 @@
   overflow-y: auto;
   padding: 1rem;
 }
+
+/* Header button styles */
+.header-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.header-button:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.header-button i {
+  font-size: 1.1rem;
+  color: var(--bs-primary);
+}

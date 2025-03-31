@@ -19,6 +19,10 @@
       <div class="app-header">
         <h1 class="h2 text-primary mb-0">Prompter</h1>
         <div class="d-flex align-items-center">
+          <!-- Settings button -->
+          <div id="settings-button" class="header-button me-3" title="Settings">
+            <i class="fas fa-cog"></i>
+          </div>
           <!-- Theme toggle button -->
           <div class="theme-toggle" title="Toggle light/dark mode">
             <i class="fas fa-moon"></i>
@@ -79,6 +83,13 @@
 
         // Initialize app
         App.init();
+
+        // Add event listener for settings button
+        document.getElementById("settings-button").addEventListener("click", function () {
+          // Change to settings dialog using the StateManager
+          StateManager.setCurrentDialog("settings");
+          App.renderCurrentDialog();
+        });
       });
     </script>
   </body>
