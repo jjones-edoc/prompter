@@ -466,12 +466,12 @@ const DialogControllers = (function () {
             // Get current response text
             const state = StateManager.getState();
             const currentText = state.responseDialogState.claudeResponse || "";
-            
+
             // Update response dialog state with new chunk
             StateManager.updateDialogState("responseDialog", {
               claudeResponse: currentText + chunk,
             });
-            
+
             // Update textarea if it exists (in case user is already on response page)
             const textArea = document.getElementById("claude-response");
             if (textArea) {
@@ -486,10 +486,10 @@ const DialogControllers = (function () {
             StateManager.updateDialogState("responseDialog", {
               isStreaming: false,
             });
-            
+
             // Show success message
             Utilities.showSnackBar("AI response received successfully!", "success");
-            
+
             // Re-render to update UI elements that depend on streaming state
             renderResponseDialog();
           },
@@ -499,15 +499,15 @@ const DialogControllers = (function () {
             StateManager.updateDialogState("responseDialog", {
               isStreaming: false,
             });
-            
+
             // Show error message
             Utilities.showSnackBar("Error streaming AI response: " + error, "error");
-            
+
             // Re-render to update UI elements
             renderResponseDialog();
           }
         );
-        
+
         // Store stream controller in state so it can be canceled if needed
         StateManager.updateDialogState("responseDialog", {
           streamController: streamController,
@@ -618,14 +618,14 @@ const DialogControllers = (function () {
   function renderResponseDialog() {
     const mainContent = document.getElementById("main-content");
     const state = StateManager.getState();
-    
+
     // Add settings info to response dialog state
     const responseState = {
       ...state.responseDialogState,
       provider: state.settingsDialogState.defaultProvider,
-      reasoningEffort: state.settingsDialogState.reasoningEffort
+      reasoningEffort: state.settingsDialogState.reasoningEffort,
     };
-    
+
     console.log("Rendering response dialog, state:", responseState);
     mainContent.innerHTML = ResponseDialog.render(responseState);
 
@@ -705,8 +705,8 @@ const DialogControllers = (function () {
   function renderSettingsDialog() {
     const state = StateManager.getState();
     const mainContent = document.getElementById("main-content");
-    
-    // If we don't have available models yet, fetch them
+
+    // Check if we don't have available models yet, fetch them
     if (!state.settingsDialogState.availableModels || Object.keys(state.settingsDialogState.availableModels).length === 0) {
       // Show loading state
       mainContent.innerHTML = `
@@ -721,27 +721,32 @@ const DialogControllers = (function () {
           </div>
         </div>
       `;
-      
+
       // Fetch available models from the API
       fetch("/api/get_available_models")
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
+          // Get values from cookies first, fall back to API defaults or state defaults
+          const getCookie = StateManager.getCookie;
+          const defaultProvider = getCookie("defaultProvider") || data.default_provider || state.settingsDialogState.defaultProvider;
+          const reasoningEffort = getCookie("reasoningEffort") || data.default_reasoning_effort || state.settingsDialogState.reasoningEffort;
+
           // Update settings state with available models
           StateManager.updateDialogState("settingsDialog", {
             availableModels: data.available_models || {},
-            defaultProvider: data.default_provider || state.settingsDialogState.defaultProvider,
-            reasoningEffort: data.default_reasoning_effort || state.settingsDialogState.reasoningEffort
+            defaultProvider: defaultProvider,
+            reasoningEffort: reasoningEffort,
           });
-          
+
           // Re-render settings dialog with fetched data
           renderSettingsDialog();
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error fetching available models:", error);
-          
+
           // Show error and continue with empty models list
           Utilities.showSnackBar("Error loading available AI models. Check your API keys and server configuration.", "error");
-          
+
           // Render settings dialog anyway, but without models
           mainContent.innerHTML = SettingsDialog.render(state.settingsDialogState);
           setupSettingsEventListeners();
@@ -752,78 +757,76 @@ const DialogControllers = (function () {
       setupSettingsEventListeners();
     }
   }
-  
+
   /**
    * Set up event listeners for the settings dialog
    */
   function setupSettingsEventListeners() {
     SettingsDialog.setupEventListeners({
       // Save settings
-      onSave: function(newSettings) {
+      onSave: function (newSettings) {
         // Update the settings in state and localStorage
         StateManager.updateSettings({
           theme: newSettings.theme,
           defaultProvider: newSettings.aiModel,
-          reasoningEffort: newSettings.reasoningEffort
+          reasoningEffort: newSettings.reasoningEffort,
         });
-        
+
         // Apply theme change immediately
         applyTheme(newSettings.theme);
-        
+
         // Show success message
         Utilities.showSnackBar("Settings saved successfully!", "success");
-        
+
         // Go back to previous dialog (usually generate)
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
       },
-      
+
       // Cancel without saving
-      onCancel: function() {
+      onCancel: function () {
         // Revert any theme preview changes
         applyTheme(StateManager.getState().settingsDialogState.theme);
-        
+
         // Go back to generate dialog
         StateManager.setCurrentDialog("generate");
         renderCurrentDialog();
       },
-      
+
       // Real-time theme preview
-      onThemePreview: function(theme) {
+      onThemePreview: function (theme) {
         applyTheme(theme);
-      }
+      },
     });
   }
-  
+
   /**
    * Apply theme to document and update icons
    * @param {string} theme - Theme to apply ('light', 'dark', or 'system')
    */
   function applyTheme(theme) {
     // Handle system preference
-    if (theme === 'system') {
+    if (theme === "system") {
       // Use system preference
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
-      
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-bs-theme", prefersDark ? "dark" : "light");
+
       // Add event listener for system preference changes
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        if (StateManager.getState().settingsDialogState.theme === 'system') {
-          document.documentElement.setAttribute('data-bs-theme', e.matches ? 'dark' : 'light');
-          updateThemeIcons(e.matches ? 'dark' : 'light');
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+        if (StateManager.getState().settingsDialogState.theme === "system") {
+          document.documentElement.setAttribute("data-bs-theme", e.matches ? "dark" : "light");
+          updateThemeIcons(e.matches ? "dark" : "light");
         }
       });
     } else {
       // Apply explicit theme
-      document.documentElement.setAttribute('data-bs-theme', theme);
+      document.documentElement.setAttribute("data-bs-theme", theme);
     }
-    
+
     // Update theme toggle icons in header
-    updateThemeIcons(theme === 'system' 
-      ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : theme);
+    updateThemeIcons(theme === "system" ? (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme);
   }
-  
+
   /**
    * Update theme icons in the header
    * @param {string} activeTheme - Active theme ('light' or 'dark')
@@ -831,14 +834,14 @@ const DialogControllers = (function () {
   function updateThemeIcons(activeTheme) {
     const moonIcon = document.querySelector(".theme-toggle .fa-moon");
     const sunIcon = document.querySelector(".theme-toggle .fa-sun");
-    
+
     if (moonIcon && sunIcon) {
-      if (activeTheme === 'dark') {
-        moonIcon.classList.add('d-none');
-        sunIcon.classList.remove('d-none');
+      if (activeTheme === "dark") {
+        moonIcon.classList.add("d-none");
+        sunIcon.classList.remove("d-none");
       } else {
-        sunIcon.classList.add('d-none');
-        moonIcon.classList.remove('d-none');
+        sunIcon.classList.add("d-none");
+        moonIcon.classList.remove("d-none");
       }
     }
   }

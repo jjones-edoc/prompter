@@ -20,13 +20,8 @@
         <h1 class="h2 text-primary mb-0">Prompter</h1>
         <div class="d-flex align-items-center">
           <!-- Settings button -->
-          <div id="settings-button" class="header-button me-3" title="Settings">
+          <div id="settings-button" class="header-button" title="Settings">
             <i class="fas fa-cog"></i>
-          </div>
-          <!-- Theme toggle button -->
-          <div class="theme-toggle" title="Toggle light/dark mode">
-            <i class="fas fa-moon"></i>
-            <i class="fas fa-sun d-none"></i>
           </div>
         </div>
       </div>
@@ -45,42 +40,8 @@
     <script src="{{ url_for('static', filename='build/js/main.js') }}"></script>
 
     <script>
-      // Initialize theme toggle functionality
+      // Initialize app on DOM content loaded
       document.addEventListener("DOMContentLoaded", function () {
-        // Check for saved theme preference
-        const savedTheme = localStorage.getItem("theme");
-        if (savedTheme) {
-          document.documentElement.setAttribute("data-bs-theme", savedTheme);
-          updateThemeIcon(savedTheme);
-        }
-
-        // Add event listener to theme toggle button
-        const themeToggle = document.querySelector(".theme-toggle");
-        themeToggle.addEventListener("click", function () {
-          const currentTheme = document.documentElement.getAttribute("data-bs-theme");
-          const newTheme = currentTheme === "dark" ? "light" : "dark";
-
-          // Update theme
-          document.documentElement.setAttribute("data-bs-theme", newTheme);
-          localStorage.setItem("theme", newTheme);
-
-          // Update icons
-          updateThemeIcon(newTheme);
-        });
-
-        function updateThemeIcon(theme) {
-          const moonIcon = document.querySelector(".fa-moon");
-          const sunIcon = document.querySelector(".fa-sun");
-
-          if (theme === "dark") {
-            moonIcon.classList.add("d-none");
-            sunIcon.classList.remove("d-none");
-          } else {
-            sunIcon.classList.add("d-none");
-            moonIcon.classList.remove("d-none");
-          }
-        }
-
         // Initialize app
         App.init();
 

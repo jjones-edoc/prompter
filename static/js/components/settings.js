@@ -116,6 +116,8 @@ const SettingsDialog = (function () {
         const aiModel = document.getElementById("ai-model-select").value;
         const reasoningEffort = document.getElementById("reasoning-effort-select").value;
 
+        console.log("Saving settings:", { theme, aiModel, reasoningEffort });
+
         // Call the onSave callback with the new settings
         if (callbacks && callbacks.onSave) {
           callbacks.onSave({

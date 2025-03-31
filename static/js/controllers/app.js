@@ -7,38 +7,47 @@ const App = (function () {
    * Initialize the application
    */
   function init() {
-    // Initialize app settings from localStorage
-    const storedTheme = localStorage.getItem("theme");
-    const storedProvider = localStorage.getItem("defaultProvider");
-    const storedReasoningEffort = localStorage.getItem("reasoningEffort");
-    
+    // Initialize app settings from cookies
+    const getCookie = StateManager.getCookie;
+    const storedTheme = getCookie("theme");
+    const storedProvider = getCookie("defaultProvider");
+    const storedReasoningEffort = getCookie("reasoningEffort");
+
     // Update settings with stored values if available
     StateManager.updateDialogState("settingsDialog", {
       theme: storedTheme || "light",
       defaultProvider: storedProvider || "anthropic",
-      reasoningEffort: storedReasoningEffort || "medium"
+      reasoningEffort: storedReasoningEffort || "medium",
     });
-    
+
     // Apply theme
     const currentTheme = StateManager.getState().settingsDialogState.theme;
     document.documentElement.setAttribute("data-bs-theme", currentTheme);
-    
+
     // Update default dialog to generate
     StateManager.setCurrentDialog("generate");
     renderCurrentDialog();
-    
+
     // Fetch available models in the background
     fetch("/api/get_available_models")
-      .then(response => response.json())
-      .then(data => {
-        // Update settings state with available models
+      .then((response) => response.json())
+      .then((data) => {
+        // Get current settings from state
+        const currentSettings = StateManager.getState().settingsDialogState;
+
+        // Use cookies or API defaults as fallbacks
+        const getCookie = StateManager.getCookie;
+        const defaultProvider = getCookie("defaultProvider") || data.default_provider || currentSettings.defaultProvider;
+        const reasoningEffort = getCookie("reasoningEffort") || data.default_reasoning_effort || currentSettings.reasoningEffort;
+
+        // Update settings state with available models and settings from cookies
         StateManager.updateDialogState("settingsDialog", {
           availableModels: data.available_models || {},
-          defaultProvider: data.default_provider || StateManager.getState().settingsDialogState.defaultProvider,
-          reasoningEffort: data.default_reasoning_effort || StateManager.getState().settingsDialogState.reasoningEffort
+          defaultProvider: defaultProvider,
+          reasoningEffort: reasoningEffort,
         });
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Error fetching available models:", error);
       });
   }

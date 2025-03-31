@@ -24,7 +24,7 @@ const StateManager = (function () {
     
     // Settings dialog state
     settingsDialogState: {
-      theme: localStorage.getItem("theme") || "light", // Get from localStorage or default to light
+      theme: "light", // Default theme, will be updated from cookie in init()
       defaultProvider: "anthropic", // Default AI provider
       reasoningEffort: "medium", // Default reasoning effort
       availableModels: {}, // Will be populated from API
@@ -181,26 +181,55 @@ const StateManager = (function () {
 
 
   /**
-   * Update settings with new values and save to localStorage
+   * Update settings with new values and save to cookies
    * @param {Object} newSettings - New settings to apply
    */
   function updateSettings(newSettings) {
     // Update settings in state
     state.settingsDialogState = { ...state.settingsDialogState, ...newSettings };
     
-    // Save theme to localStorage for persistence
+    // Save settings to cookies for persistence
     if (newSettings.theme) {
-      localStorage.setItem("theme", newSettings.theme);
+      setCookie("theme", newSettings.theme, 365); // Cookie expires in 365 days
     }
     
     // Save other settings if needed
     if (newSettings.defaultProvider) {
-      localStorage.setItem("defaultProvider", newSettings.defaultProvider);
+      setCookie("defaultProvider", newSettings.defaultProvider, 365);
     }
     
     if (newSettings.reasoningEffort) {
-      localStorage.setItem("reasoningEffort", newSettings.reasoningEffort);
+      setCookie("reasoningEffort", newSettings.reasoningEffort, 365);
     }
+  }
+  
+  /**
+   * Set a cookie
+   * @param {string} name - Cookie name
+   * @param {string} value - Cookie value
+   * @param {number} days - Days until expiration
+   */
+  function setCookie(name, value, days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "; expires=" + date.toUTCString();
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+  }
+  
+  /**
+   * Get cookie value by name
+   * @param {string} name - Cookie name
+   * @returns {string|null} Cookie value or null if not found
+   */
+  function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
   }
 
   // Public API
@@ -216,5 +245,8 @@ const StateManager = (function () {
     updatePromptElement,
     // Settings management
     updateSettings,
+    // Cookie management
+    setCookie,
+    getCookie,
   };
 })();

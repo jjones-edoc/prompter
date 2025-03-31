@@ -285,9 +285,8 @@ const ApiService = (function () {
         return { error: `Failed to get AI response: ${error.message}` };
       });
   }
-  
-  /**
-   * Stream prompt to AI model and get response in real-time
+
+  /* Stream prompt to AI model and get response in real-time
    * @param {string} prompt - The prompt to send to the AI model
    * @param {string} provider - The AI provider to use (default: 'anthropic')
    * @param {string} reasoningEffort - Reasoning effort level (default: 'medium')
@@ -297,6 +296,9 @@ const ApiService = (function () {
    * @returns {EventSource} The event source object that can be closed to cancel the stream
    */
   function streamPromptToAI(prompt, provider = "anthropic", reasoningEffort = "medium", onChunk, onComplete, onError) {
+    console.log("Streaming prompt with settings:", { provider, reasoningEffort });
+    console.log("Streaming prompt with settings:", { provider, reasoningEffort });
+    console.log("Streaming prompt with settings:", { provider, reasoningEffort });
     const requestData = {
       prompt: prompt,
       provider: provider,
@@ -315,88 +317,91 @@ const ApiService = (function () {
       body: JSON.stringify(requestData),
       signal,
     })
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        
+
         // We need to process the stream manually
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
-        
+
         // Storage for incomplete event data
-        let buffer = '';
-        
+        let buffer = "";
+
         // Function to process the stream
         function processStream() {
-          return reader.read().then(({ done, value }) => {
-            // If the stream is done, call the completion callback
-            if (done) {
-              if (onComplete) onComplete();
-              return;
-            }
-            
-            // Decode the chunk and add it to our buffer
-            buffer += decoder.decode(value, { stream: true });
-            
-            // Process complete events in the buffer
-            let eventEnd = buffer.indexOf("\n\n");
-            while (eventEnd >= 0) {
-              const eventData = buffer.substring(0, eventEnd);
-              buffer = buffer.substring(eventEnd + 2);
-              
-              // Parse the event data
-              const eventLines = eventData.split("\n");
-              let event = "message";
-              let data = "";
-              
-              for (const line of eventLines) {
-                if (line.startsWith("event: ")) {
-                  event = line.substring(7);
-                } else if (line.startsWith("data: ")) {
-                  data = line.substring(6);
-                }
+          return reader
+            .read()
+            .then(({ done, value }) => {
+              // If the stream is done, call the completion callback
+              if (done) {
+                if (onComplete) onComplete();
+                return;
               }
-              
-              // Handle different event types
-              if (event === "message" && data && onChunk) {
-                onChunk(data);
-              } else if (event === "metrics" && data) {
-                try {
-                  const metrics = JSON.parse(data);
-                  console.log("Stream metrics:", metrics);
-                } catch (e) {
-                  console.error("Error parsing metrics:", e);
+
+              // Decode the chunk and add it to our buffer
+              buffer += decoder.decode(value, { stream: true });
+
+              // Process complete events in the buffer
+              let eventEnd = buffer.indexOf("\n\n");
+              while (eventEnd >= 0) {
+                const eventData = buffer.substring(0, eventEnd);
+                buffer = buffer.substring(eventEnd + 2);
+
+                // Parse the event data
+                const eventLines = eventData.split("\n");
+                let event = "message";
+                let data = "";
+
+                for (const line of eventLines) {
+                  if (line.startsWith("event: ")) {
+                    event = line.substring(7);
+                  } else if (line.startsWith("data: ")) {
+                    data = line.substring(6);
+                  }
                 }
-              } else if (event === "error" && data && onError) {
-                onError(data);
-              } else if (event === "done" && onComplete) {
-                onComplete();
+
+                // Handle different event types
+                if (event === "message" && data && onChunk) {
+                  onChunk(data);
+                } else if (event === "metrics" && data) {
+                  try {
+                    const metrics = JSON.parse(data);
+                    console.log("Stream metrics:", metrics);
+                  } catch (e) {
+                    console.error("Error parsing metrics:", e);
+                  }
+                } else if (event === "error" && data && onError) {
+                  onError(data);
+                } else if (event === "done" && onComplete) {
+                  onComplete();
+                }
+
+                // Look for the next event
+                eventEnd = buffer.indexOf("\n\n");
               }
-              
-              // Look for the next event
-              eventEnd = buffer.indexOf("\n\n");
-            }
-            
-            // Continue processing the stream
-            return processStream();
-          }).catch(error => {
-            if (onError) onError(error.message);
-          });
+
+              // Continue processing the stream
+              return processStream();
+            })
+            .catch((error) => {
+              if (onError) onError(error.message);
+            });
         }
-        
+
         // Start processing the stream
         processStream();
       })
-      .catch(error => {
+      .catch((error) => {
         if (onError) onError(error.message);
       });
-      
+
     // Return an object that can be used to cancel the stream
     return {
       close: () => {
         controller.abort();
-      }
+      },
     };
   }
 
