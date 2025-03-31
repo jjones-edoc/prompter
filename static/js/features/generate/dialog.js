@@ -1,162 +1,186 @@
+/**
+ * Generate Dialog Module
+ * Handles the UI rendering and interactions for prompt generation
+ */
 const GenerateDialog = (function () {
+  /**
+   * Render the generate dialog based on state
+   * @param {Object} state - The state for the generate dialog
+   * @returns {string} HTML content for the generate dialog
+   */
   function render(state) {
     const promptElements = state.promptElements || [];
     const availableElementTypes = state.availableElementTypes || [];
 
     return `
-      <div class="card shadow-sm mb-4">
-        <div class="card-header card-header-themed">
-          <h2 class="h4 mb-0">Prompt Builder</h2>
-        </div>
-        <div class="card-body">
-          <!-- Element Management Section -->
-          <div class="element-manager mb-4">
-            <div class="row">
-              <div class="col-md-6">
-                <div class="card border h-100">
-                  <div class="card-header bg-light">
-                    <h3 class="h5 mb-0">Prompt Elements</h3>
-                  </div>
-                  <div class="card-body p-0 d-flex flex-column">
-                    <ul id="prompt-elements-list" class="list-group list-group-flush flex-grow-1" style="overflow-y: auto;">
-                      ${renderPromptElements(promptElements)}
-                    </ul>
+        <div class="card shadow-sm mb-4">
+          <div class="card-header card-header-themed">
+            <h2 class="h4 mb-0">Prompt Builder</h2>
+          </div>
+          <div class="card-body">
+            <!-- Element Management Section -->
+            <div class="element-manager mb-4">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card border h-100">
+                    <div class="card-header bg-light">
+                      <h3 class="h5 mb-0">Prompt Elements</h3>
+                    </div>
+                    <div class="card-body p-0 d-flex flex-column">
+                      <ul id="prompt-elements-list" class="list-group list-group-flush flex-grow-1" style="overflow-y: auto;">
+                        ${renderPromptElements(promptElements)}
+                      </ul>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card border">
-                  <div class="card-header bg-light">
-                    <h3 class="h5 mb-0">Available Elements</h3>
-                  </div>
-                  <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                      ${renderAvailableElements(availableElementTypes)}
+                <div class="col-md-6">
+                  <div class="card border">
+                    <div class="card-header bg-light">
+                      <h3 class="h5 mb-0">Available Elements</h3>
+                    </div>
+                    <div class="card-body p-0">
+                      <div class="list-group list-group-flush">
+                        ${renderAvailableElements(availableElementTypes)}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Generated Prompt Section (hidden by default) -->
-          <div class="generated-prompt mb-4 d-none" id="generated-prompt-section">
-            <div class="card border">
-              <div class="card-header bg-light">
-                <h3 class="h5 mb-0">Generated Prompt</h3>
-              </div>
-              <div class="card-body">
-                <textarea id="prompt-content" class="form-control bg-light" rows="15">${state.generatedContent || ""}</textarea>
+  
+            <!-- Generated Prompt Section (hidden by default) -->
+            <div class="generated-prompt mb-4 d-none" id="generated-prompt-section">
+              <div class="card border">
+                <div class="card-header bg-light">
+                  <h3 class="h5 mb-0">Generated Prompt</h3>
+                </div>
+                <div class="card-body">
+                  <textarea id="prompt-content" class="form-control bg-light" rows="15">${state.generatedContent || ""}</textarea>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="d-flex flex-wrap gap-2 justify-content-between">
-            <div class="d-flex gap-2">
-              <button id="toggle-prompt-btn" class="btn btn-outline-secondary">
-                <i class="fas fa-eye me-1"></i> Show Prompt
-              </button>
-              <button id="generate-prompt-btn" class="btn btn-primary">
-                <i class="fas fa-wand-magic-sparkles me-1"></i> Generate Prompt
-              </button>
-              <button id="copy-button" class="btn btn-primary">
-                <i class="fas fa-copy me-1"></i> Copy to Clipboard
-              </button>
-              <button id="send-to-ai-btn" class="btn btn-primary">
-                <i class="fas fa-robot me-1"></i> Send to AI
-              </button>
-            </div>
-            <div>
-              <button id="response-button" class="btn btn-success">
-                <i class="fas fa-reply me-1"></i> Enter Response
-              </button>
+  
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between">
+              <div class="d-flex gap-2">
+                <button id="toggle-prompt-btn" class="btn btn-outline-secondary">
+                  <i class="fas fa-eye me-1"></i> Show Prompt
+                </button>
+                <button id="generate-prompt-btn" class="btn btn-primary">
+                  <i class="fas fa-wand-magic-sparkles me-1"></i> Generate Prompt
+                </button>
+                <button id="copy-button" class="btn btn-primary">
+                  <i class="fas fa-copy me-1"></i> Copy to Clipboard
+                </button>
+                <button id="send-to-ai-btn" class="btn btn-primary">
+                  <i class="fas fa-robot me-1"></i> Send to AI
+                </button>
+              </div>
+              <div>
+                <button id="response-button" class="btn btn-success">
+                  <i class="fas fa-reply me-1"></i> Enter Response
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
   }
 
+  /**
+   * Render list of prompt elements
+   * @param {Array} elements - Array of prompt elements
+   * @returns {string} HTML for prompt elements
+   */
   function renderPromptElements(elements) {
     if (!elements || elements.length === 0) {
       return `
-        <li class="list-group-item text-center text-muted py-4">
-          <i class="fas fa-info-circle me-2"></i> No elements added yet
-        </li>
-      `;
+          <li class="list-group-item text-center text-muted py-4">
+            <i class="fas fa-info-circle me-2"></i> No elements added yet
+          </li>
+        `;
     }
 
     let html = "";
     elements.forEach((element, index) => {
       html += `
-        <li class="list-group-item d-flex justify-content-between align-items-center" data-element-index="${index}">
-          <div class="element-info">
-            <div class="d-flex align-items-center">
-              <i class="fas ${getElementIcon(element.type)} me-2"></i>
-              <strong>${getElementTitle(element)}</strong>
+          <li class="list-group-item d-flex justify-content-between align-items-center" data-element-index="${index}">
+            <div class="element-info">
+              <div class="d-flex align-items-center">
+                <i class="fas ${getElementIcon(element.type)} me-2"></i>
+                <strong>${getElementTitle(element)}</strong>
+              </div>
+              <div class="small text-muted">${getElementDescription(element)}</div>
             </div>
-            <div class="small text-muted">${getElementDescription(element)}</div>
-          </div>
-          <div class="element-controls">
-            ${
-              index > 0
-                ? `<button class="btn btn-sm btn-outline-secondary move-up-btn" title="Move Up">
-                <i class="fas fa-arrow-up"></i>
-              </button>`
-                : ""
-            }
-            ${
-              index < elements.length - 1
-                ? `<button class="btn btn-sm btn-outline-secondary move-down-btn" title="Move Down">
-                <i class="fas fa-arrow-down"></i>
-              </button>`
-                : ""
-            }
-            <button class="btn btn-sm btn-outline-secondary edit-element-btn ms-1" title="Edit">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger remove-element-btn ms-1" title="Remove">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </li>
-      `;
+            <div class="element-controls">
+              ${
+                index > 0
+                  ? `<button class="btn btn-sm btn-outline-secondary move-up-btn" title="Move Up">
+                  <i class="fas fa-arrow-up"></i>
+                </button>`
+                  : ""
+              }
+              ${
+                index < elements.length - 1
+                  ? `<button class="btn btn-sm btn-outline-secondary move-down-btn" title="Move Down">
+                  <i class="fas fa-arrow-down"></i>
+                </button>`
+                  : ""
+              }
+              <button class="btn btn-sm btn-outline-secondary edit-element-btn ms-1" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger remove-element-btn ms-1" title="Remove">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </li>
+        `;
     });
 
     return html;
   }
 
+  /**
+   * Render available element types
+   * @param {Array} elementTypes - Array of available element types
+   * @returns {string} HTML for available element types
+   */
   function renderAvailableElements(elementTypes) {
     if (!elementTypes || elementTypes.length === 0) {
       return `
-        <div class="list-group-item text-center text-muted py-4">
-          <i class="fas fa-info-circle me-2"></i> No element types available
-        </div>
-      `;
+          <div class="list-group-item text-center text-muted py-4">
+            <i class="fas fa-info-circle me-2"></i> No element types available
+          </div>
+        `;
     }
 
     let html = "";
     elementTypes.forEach((elementType) => {
       if (elementType.enabled) {
         html += `
-          <button class="list-group-item list-group-item-action element-type-btn" data-element-type="${elementType.id}">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <i class="fas ${getElementTypeIcon(elementType.id)} me-2"></i>
-                <strong>${elementType.name}</strong>
-                <div class="small text-muted">${elementType.description}</div>
+            <button class="list-group-item list-group-item-action element-type-btn" data-element-type="${elementType.id}">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <i class="fas ${getElementTypeIcon(elementType.id)} me-2"></i>
+                  <strong>${elementType.name}</strong>
+                  <div class="small text-muted">${elementType.description}</div>
+                </div>
+                <i class="fas fa-plus text-success"></i>
               </div>
-              <i class="fas fa-plus text-success"></i>
-            </div>
-          </button>
-        `;
+            </button>
+          `;
       }
     });
 
     return html;
   }
 
+  /**
+   * Get icon class for element type
+   * @param {string} type - Element type
+   * @returns {string} Icon class
+   */
   function getElementIcon(type) {
     switch (type) {
       case "userPrompt":
@@ -176,10 +200,20 @@ const GenerateDialog = (function () {
     }
   }
 
+  /**
+   * Get icon for element type button
+   * @param {string} type - Element type
+   * @returns {string} Icon class
+   */
   function getElementTypeIcon(type) {
     return getElementIcon(type);
   }
 
+  /**
+   * Get title for element
+   * @param {Object} element - Element object
+   * @returns {string} Element title
+   */
   function getElementTitle(element) {
     switch (element.type) {
       case "userPrompt":
@@ -199,6 +233,11 @@ const GenerateDialog = (function () {
     }
   }
 
+  /**
+   * Get description for element
+   * @param {Object} element - Element object
+   * @returns {string} Element description
+   */
   function getElementDescription(element) {
     switch (element.type) {
       case "userPrompt":
@@ -230,8 +269,11 @@ const GenerateDialog = (function () {
     }
   }
 
+  /**
+   * Set up event listeners for the generate dialog
+   * @param {Object} callbacks - Callbacks for dialog actions
+   */
   function setupEventListeners(callbacks) {
-
     // Element type buttons
     document.querySelectorAll(".element-type-btn").forEach((button) => {
       button.addEventListener("click", function () {
@@ -269,20 +311,20 @@ const GenerateDialog = (function () {
       const promptContent = document.getElementById("prompt-content");
       const promptSection = document.getElementById("generated-prompt-section");
       const promptElementsList = document.getElementById("prompt-elements-list");
-      
+
       // Check if we need to generate content first
       if (!promptContent.value.trim()) {
         // Get the current state to check for prompt elements properly
         const state = StateManager.getState();
         const promptElements = state.generateDialogState.promptElements || [];
         const hasElements = promptElements.length > 0;
-        
+
         if (hasElements) {
           // Auto-generate the prompt first
           if (callbacks && callbacks.onGeneratePrompt) {
             // Show a message that we're generating first
             Utilities.showSnackBar("Generating prompt before copying...", "info");
-            
+
             // Generate the prompt then copy after completion
             callbacks.onGeneratePrompt(() => {
               // This callback will be called after generation is complete
@@ -296,10 +338,10 @@ const GenerateDialog = (function () {
           return;
         }
       }
-      
+
       // Proceed with copying if we have content
       copyToClipboardAction();
-      
+
       // Helper function to avoid code duplication
       function copyToClipboardAction() {
         // Save current visibility state
@@ -333,25 +375,25 @@ const GenerateDialog = (function () {
         }
       }
     });
-    
+
     // Send to AI button
     Utilities.setupButtonListener("send-to-ai-btn", function () {
       const promptContent = document.getElementById("prompt-content");
       const promptSection = document.getElementById("generated-prompt-section");
-      
+
       // Check if we need to generate content first
       if (!promptContent.value.trim()) {
         // Get the current state to check for prompt elements properly
         const state = StateManager.getState();
         const promptElements = state.generateDialogState.promptElements || [];
         const hasElements = promptElements.length > 0;
-        
+
         if (hasElements) {
           // Auto-generate the prompt first
           if (callbacks && callbacks.onGeneratePrompt) {
             // Show a message that we're generating first
             Utilities.showSnackBar("Generating prompt before sending to AI...", "info");
-            
+
             // Generate the prompt then send to AI after completion
             callbacks.onGeneratePrompt(() => {
               // This callback will be called after generation is complete
@@ -365,10 +407,10 @@ const GenerateDialog = (function () {
           return;
         }
       }
-      
+
       // Proceed with sending if we have content
       sendToAIAction();
-      
+
       // Helper function to avoid code duplication
       function sendToAIAction() {
         // Save current visibility state
@@ -391,16 +433,18 @@ const GenerateDialog = (function () {
       }
     });
 
-
     // Go to response button
     Utilities.setupButtonListener("response-button", function () {
       if (callbacks && callbacks.onGoToResponse) {
         callbacks.onGoToResponse();
       }
     });
-
   }
 
+  /**
+   * Set up element control buttons (move, edit, remove)
+   * @param {Object} callbacks - Callbacks for element actions
+   */
   function setupElementControlButtons(callbacks) {
     // Move up buttons
     document.querySelectorAll(".move-up-btn").forEach((button) => {
@@ -451,7 +495,6 @@ const GenerateDialog = (function () {
     });
   }
 
-
   /**
    * Handle click on element type button
    * @param {string} elementType - Type of element clicked
@@ -465,14 +508,14 @@ const GenerateDialog = (function () {
           callbacks.onEditPrompt(true); // Pass true to indicate creating new element
         }
         break;
-        
+
       case "selectedFiles":
         // Navigate directly to file selector without adding element
         if (callbacks && callbacks.onSelectFiles) {
           callbacks.onSelectFiles(true); // Pass true to indicate creating new element
         }
         break;
-        
+
       default:
         // For other element types (like codingPrompt, planningPrompt, etc.)
         // Create and add element immediately since they don't require additional user input
@@ -480,7 +523,7 @@ const GenerateDialog = (function () {
           type: elementType,
           id: `element-${Date.now()}`,
         };
-        
+
         if (callbacks && callbacks.onAddElement) {
           callbacks.onAddElement(newElement);
         }

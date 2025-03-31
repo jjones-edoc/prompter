@@ -71,7 +71,7 @@ const App = (function () {
         FileSelectorHandlers.renderFileSelectorDialog();
         break;
       case "generate":
-        DialogControllers.renderGenerateDialog();
+        GenerateHandlers.renderGenerateDialog();
         break;
       case "response":
         DialogControllers.renderResponseDialog();
