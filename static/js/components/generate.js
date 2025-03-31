@@ -63,6 +63,9 @@ const GenerateDialog = (function () {
               <button id="copy-button" class="btn btn-primary">
                 <i class="fas fa-copy me-1"></i> Copy to Clipboard
               </button>
+              <button id="send-to-ai-btn" class="btn btn-primary">
+                <i class="fas fa-robot me-1"></i> Send to AI
+              </button>
             </div>
             <div>
               <button id="response-button" class="btn btn-success">
@@ -323,6 +326,63 @@ const GenerateDialog = (function () {
             Utilities.showSnackBar("Copy failed: " + err, "error");
           }
         );
+
+        // If section was hidden, hide it again
+        if (wasSectionHidden) {
+          promptSection.classList.add("d-none");
+        }
+      }
+    });
+    
+    // Send to AI button
+    Utilities.setupButtonListener("send-to-ai-btn", function () {
+      const promptContent = document.getElementById("prompt-content");
+      const promptSection = document.getElementById("generated-prompt-section");
+      
+      // Check if we need to generate content first
+      if (!promptContent.value.trim()) {
+        // Get the current state to check for prompt elements properly
+        const state = StateManager.getState();
+        const promptElements = state.generateDialogState.promptElements || [];
+        const hasElements = promptElements.length > 0;
+        
+        if (hasElements) {
+          // Auto-generate the prompt first
+          if (callbacks && callbacks.onGeneratePrompt) {
+            // Show a message that we're generating first
+            Utilities.showSnackBar("Generating prompt before sending to AI...", "info");
+            
+            // Generate the prompt then send to AI after completion
+            callbacks.onGeneratePrompt(() => {
+              // This callback will be called after generation is complete
+              sendToAIAction();
+            });
+            return; // Exit early, the callback will handle sending
+          }
+        } else {
+          // No content and no elements to generate from
+          Utilities.showSnackBar("Nothing to send. Please add elements to your prompt first.", "error");
+          return;
+        }
+      }
+      
+      // Proceed with sending if we have content
+      sendToAIAction();
+      
+      // Helper function to avoid code duplication
+      function sendToAIAction() {
+        // Save current visibility state
+        const wasSectionHidden = promptSection.classList.contains("d-none");
+
+        // If section is hidden, temporarily show it to allow selection
+        if (wasSectionHidden) {
+          promptSection.classList.remove("d-none");
+        }
+
+        // Call the onSendToAI callback with the prompt content
+        if (callbacks && callbacks.onSendToAI) {
+          callbacks.onSendToAI(promptContent.value);
+        }
 
         // If section was hidden, hide it again
         if (wasSectionHidden) {

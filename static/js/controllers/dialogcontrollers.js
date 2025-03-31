@@ -434,6 +434,33 @@ const DialogControllers = (function () {
         StateManager.setCurrentDialog("response");
         renderCurrentDialog();
       },
+      
+      // Send the prompt to AI model
+      onSendToAI: function (promptContent) {
+        // Show loading snackbar
+        Utilities.showSnackBar("Sending prompt to AI model...", "info");
+        
+        // Call the API to send prompt to AI
+        ApiService.sendPromptToAI(promptContent).then((response) => {
+          if (response.error) {
+            Utilities.showSnackBar("Error getting AI response: " + response.error, "error");
+            return;
+          }
+          
+          // Update response dialog state with the AI's response
+          StateManager.updateDialogState("response", {
+            claudeResponse: response.text,
+            processingResults: null // Reset any previous processing results
+          });
+          
+          // Show success message
+          Utilities.showSnackBar("AI response received successfully!", "success");
+          
+          // Navigate to the response dialog
+          StateManager.setCurrentDialog("response");
+          renderCurrentDialog();
+        });
+      },
 
     });
 

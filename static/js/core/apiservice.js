@@ -209,6 +209,13 @@ const ApiService = (function () {
           });
         }
 
+        // Add user prompt if available - THIS IS THE MISSING PART
+        if (options.userPrompt && options.userPrompt.trim() !== "") {
+          // Add user prompt at the end or wherever appropriate in your workflow
+          combinedContent += "### User Instructions:\n\n";
+          combinedContent += options.userPrompt + "\n\n";
+        }
+
         // Return the combined content
         return {
           combined_content: combinedContent,
@@ -222,29 +229,62 @@ const ApiService = (function () {
   }
 
   /**
- * Process Claude's response
- * @param {string} claudeResponse - Claude's response
- * @returns {Promise} Promise resolving to processing results
- */
-function processClaudeResponse(claudeResponse) {
-  const formData = new FormData();
-  formData.append("claude_response", claudeResponse);
+   * Process Claude's response
+   * @param {string} claudeResponse - Claude's response
+   * @returns {Promise} Promise resolving to processing results
+   */
+  function processClaudeResponse(claudeResponse) {
+    const formData = new FormData();
+    formData.append("claude_response", claudeResponse);
 
-  return fetch("/api/process_claude_response", {
-    method: "POST",
-    body: formData,
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
+    return fetch("/api/process_claude_response", {
+      method: "POST",
+      body: formData,
     })
-    .catch((error) => {
-      console.error("Error processing Claude's response:", error);
-      return { error: `Failed to process Claude's response: ${error.message}` };
-    });
-}
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("Error processing Claude's response:", error);
+        return { error: `Failed to process Claude's response: ${error.message}` };
+      });
+  }
+
+  /**
+   * Send prompt to AI model and get response
+   * @param {string} prompt - The prompt to send to the AI model
+   * @param {string} provider - The AI provider to use (default: 'anthropic')
+   * @param {string} reasoningEffort - Reasoning effort level (default: 'medium')
+   * @returns {Promise} Promise resolving to AI response
+   */
+  function sendPromptToAI(prompt, provider = "anthropic", reasoningEffort = "medium") {
+    const requestData = {
+      prompt: prompt,
+      provider: provider,
+      reasoning_effort: reasoningEffort,
+    };
+
+    return fetch("/api/get_ai_response", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("Error getting AI response:", error);
+        return { error: `Failed to get AI response: ${error.message}` };
+      });
+  }
 
   /**
    * Search files for the given query
@@ -294,6 +334,7 @@ function processClaudeResponse(claudeResponse) {
     fetchPlanningPrompt,
     generateModularContent,
     processClaudeResponse,
+    sendPromptToAI,
     searchFiles,
     fetchFolderTokenCount,
   };
