@@ -265,34 +265,69 @@ const GenerateDialog = (function () {
     Utilities.setupButtonListener("copy-button", function () {
       const promptContent = document.getElementById("prompt-content");
       const promptSection = document.getElementById("generated-prompt-section");
-      // Save current visibility state
-      const wasSectionHidden = promptSection.classList.contains("d-none");
-
-      // If section is hidden, temporarily show it to allow selection
-      if (wasSectionHidden) {
-        promptSection.classList.remove("d-none");
-      }
-
-      Utilities.copyToClipboard(
-        promptContent.value,
-        () => {
-          // Show success snackbar
-          Utilities.showSnackBar("Copied to clipboard!", "success");
-
-          // Call the onCopy callback
-          if (callbacks && callbacks.onCopy) {
-            callbacks.onCopy();
+      const promptElementsList = document.getElementById("prompt-elements-list");
+      
+      // Check if we need to generate content first
+      if (!promptContent.value.trim()) {
+        // Get the current state to check for prompt elements properly
+        const state = StateManager.getState();
+        const promptElements = state.generateDialogState.promptElements || [];
+        const hasElements = promptElements.length > 0;
+        
+        if (hasElements) {
+          // Auto-generate the prompt first
+          if (callbacks && callbacks.onGeneratePrompt) {
+            // Show a message that we're generating first
+            Utilities.showSnackBar("Generating prompt before copying...", "info");
+            
+            // Generate the prompt then copy after completion
+            callbacks.onGeneratePrompt(() => {
+              // This callback will be called after generation is complete
+              copyToClipboardAction();
+            });
+            return; // Exit early, the callback will handle copying
           }
-        },
-        (err) => {
-          // Show error snackbar
-          Utilities.showSnackBar("Copy failed: " + err, "error");
+        } else {
+          // No content and no elements to generate from
+          Utilities.showSnackBar("Nothing to copy. Please add elements to your prompt first.", "error");
+          return;
         }
-      );
+      }
+      
+      // Proceed with copying if we have content
+      copyToClipboardAction();
+      
+      // Helper function to avoid code duplication
+      function copyToClipboardAction() {
+        // Save current visibility state
+        const wasSectionHidden = promptSection.classList.contains("d-none");
 
-      // If section was hidden, hide it again
-      if (wasSectionHidden) {
-        promptSection.classList.add("d-none");
+        // If section is hidden, temporarily show it to allow selection
+        if (wasSectionHidden) {
+          promptSection.classList.remove("d-none");
+        }
+
+        Utilities.copyToClipboard(
+          promptContent.value,
+          () => {
+            // Show success snackbar
+            Utilities.showSnackBar("Copied to clipboard!", "success");
+
+            // Call the onCopy callback
+            if (callbacks && callbacks.onCopy) {
+              callbacks.onCopy();
+            }
+          },
+          (err) => {
+            // Show error snackbar
+            Utilities.showSnackBar("Copy failed: " + err, "error");
+          }
+        );
+
+        // If section was hidden, hide it again
+        if (wasSectionHidden) {
+          promptSection.classList.add("d-none");
+        }
       }
     });
 

@@ -364,8 +364,8 @@ const DialogControllers = (function () {
       },
 
       // Generate the final prompt
-      onGeneratePrompt: function () {
-        generatePromptContent();
+      onGeneratePrompt: function (callback) {
+        generatePromptContent(callback);
       },
 
       // Go to prompt dialog to edit user prompt
@@ -448,8 +448,9 @@ const DialogControllers = (function () {
 
   /**
    * Generate prompt content based on the current elements
+   * @param {Function} callback - Optional callback to run after generation completes
    */
-  function generatePromptContent() {
+  function generatePromptContent(callback) {
     const state = StateManager.getState();
     const elements = state.generateDialogState.promptElements;
 
@@ -522,6 +523,11 @@ const DialogControllers = (function () {
 
       // Show success snackbar
       Utilities.showSnackBar("Prompt generated successfully!", "success");
+      
+      // Execute callback if provided
+      if (typeof callback === 'function') {
+        callback();
+      }
     };
 
     // Call API to generate content
