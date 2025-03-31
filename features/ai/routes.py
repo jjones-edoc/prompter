@@ -215,9 +215,9 @@ def register_ai_integration_routes(app):
         if provider == "anthropic":
             return os.getenv("ANTHROPIC_API_KEY") is not None
 
-        # Gemini (Google) typically uses GOOGLE_API_KEY
+        # Gemini (Google) typically uses GEMINI_API_KEY
         if provider == "gemini":
-            return os.getenv("GOOGLE_API_KEY") is not None
+            return os.getenv("GEMINI_API_KEY") is not None
 
         # Mistral uses MISTRAL_API_KEY (as seen in the providers.py code)
         if provider == "mistral":

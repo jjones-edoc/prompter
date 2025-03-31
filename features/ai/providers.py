@@ -50,7 +50,7 @@ class AIProvider:
         elif self.provider == "anthropic":
             return os.getenv("ANTHROPIC_API_KEY") is not None
         elif self.provider == "gemini":
-            return os.getenv("GOOGLE_API_KEY") is not None
+            return os.getenv("GEMINI_API_KEY") is not None
         elif self.provider == "mistral":
             return os.getenv("MISTRAL_API_KEY") is not None
         elif self.provider == "deepseek":
