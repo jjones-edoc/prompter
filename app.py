@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template
 from utils.scanner import Scanner
 
+from features.ai.routes import register_ai_integration_routes
 from features.navigation.routes import register_navigation_routes
 from features.file_modification.routes import register_file_modification_routes
 from features.prompt_generation.routes import register_prompt_generation_routes
@@ -18,6 +19,7 @@ def create_app(directory: str):
     scanner = Scanner(directory)
     app.config['SCANNER'] = scanner
 
+    register_ai_integration_routes(app)
     register_prompt_generation_routes(app, scanner)
     register_navigation_routes(app, scanner)  # Coming from features/navigation
     register_file_modification_routes(app, scanner)

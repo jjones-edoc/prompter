@@ -4,3 +4,9 @@ setuptools
 tiktoken
 pathspec
 jsmin
+openai
+anthropic
+mistralai
+google-generativeai
+ollama
+tiktoken
