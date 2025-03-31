@@ -62,7 +62,7 @@ def bundle_js():
 
     # Define paths
     root_dir = Path(__file__).resolve().parent
-    output_dir = root_dir / 'build' / 'js'
+    output_dir = root_dir / 'static' / 'build' / 'js'
     output_file = output_dir / 'main.js'
 
     # Ensure output directory exists
@@ -153,7 +153,7 @@ def bundle_css():
 
     # Define paths
     root_dir = Path(__file__).resolve().parent
-    output_dir = root_dir / 'build' / 'css'
+    output_dir = root_dir / 'static' / 'build' / 'css'
     output_file = output_dir / 'main.css'
 
     # Ensure output directory exists
