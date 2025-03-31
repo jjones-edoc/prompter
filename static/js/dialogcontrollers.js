@@ -499,10 +499,6 @@ const DialogControllers = (function () {
       includeDirectoryStructure: includeDirectoryStructure,
     };
 
-    // Check if we want to use the old endpoint (for backward compatibility)
-    // or the new modular endpoints
-    const useModularEndpoints = true; // Set to true to use new endpoints, false to use old endpoint
-
     // Function to handle API response
     const handleGeneratedContent = (data) => {
       if (data.error) {
@@ -528,20 +524,8 @@ const DialogControllers = (function () {
       Utilities.showSnackBar("Prompt generated successfully!", "success");
     };
 
-    // Call API to generate content using either the modular approach or traditional approach
-    if (useModularEndpoints) {
-      ApiService.generateModularContent(options).then(handleGeneratedContent);
-    } else {
-      // For backward compatibility - convert options back to the old format expected by generateCombinedContent
-      const oldOptions = {
-        selectedFiles: selectedFiles,
-        selectedFolders: selectedFolders,
-        userPrompt: userPrompt,
-        includeCodingPrompt: includePlanningPrompt || includeEditingPrompt,
-        includeDirectoryStructure: includeDirectoryStructure,
-      };
-      ApiService.generateCombinedContent(oldOptions).then(handleGeneratedContent);
-    }
+    // Call API to generate content
+    ApiService.generateModularContent(options).then(handleGeneratedContent);
   }
 
   /**

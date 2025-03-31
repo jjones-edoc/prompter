@@ -156,33 +156,6 @@ const Utilities = (function () {
   }
 
   /**
-   * Fetch data from the server with JSON response
-   * @param {string} url - API endpoint
-   * @param {Object} options - Fetch options (optional)
-   * @param {Function} onSuccess - Success callback (optional)
-   * @param {Function} onError - Error callback (optional)
-   * @returns {Promise} Fetch promise
-   */
-  function fetchJSON(url, options = {}, onSuccess = null, onError = null) {
-    return fetch(url, options)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (onSuccess) onSuccess(data);
-        return data;
-      })
-      .catch((error) => {
-        console.error(`Error fetching from ${url}:`, error);
-        if (onError) onError(error);
-        throw error;
-      });
-  }
-
-  /**
    * Create and set up a button click event listener
    * @param {string} buttonId - Button element ID
    * @param {Function} callback - Click event callback
@@ -200,10 +173,9 @@ const Utilities = (function () {
    * Set up clipboard paste functionality
    * @param {string} buttonId - Paste button ID
    * @param {string} targetId - Target textarea ID
-   * @param {string} resultsId - Results container ID (deprecated, no longer used)
    * @returns {boolean} - True if setup was successful
    */
-  function setupClipboardPaste(buttonId, targetId, resultsId = null) {
+  function setupClipboardPaste(buttonId, targetId) {
     const pasteButton = document.getElementById(buttonId);
     const targetElement = document.getElementById(targetId);
 
@@ -239,7 +211,6 @@ const Utilities = (function () {
     showSnackBar,
     formatFileSize,
     copyToClipboard,
-    fetchJSON,
     setupButtonListener,
     setupClipboardPaste,
   };

@@ -57,9 +57,6 @@ const ApiService = (function () {
       });
   }
 
-  // formatDirectoryStructure function removed as it's no longer needed
-  // Directory structure formatting is now handled by the backend
-
   /**
    * Fetch file data from the server
    * @param {Object} options - Options for generating content
@@ -105,10 +102,6 @@ const ApiService = (function () {
         return { error: "Failed to load planning prompt." };
       });
   }
-
-  // Editing prompt fetching removed as it's consolidated with the coding prompt
-
-  // generateCombinedContent function removed as it's no longer used
 
   /**
    * Generate content using the new modular endpoints

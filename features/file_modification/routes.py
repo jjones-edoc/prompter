@@ -47,12 +47,15 @@ def register_file_modification_routes(app, scanner):
             }
 
             # Add a summary message
+            # Count unique files affected (both edited and moved)
+            unique_files_count = len(results['edited_files']) + len(results.get('moved_files', []))
+            
             if results['error_count'] == 0:
                 response[
-                    'message'] = f"Successfully edited {results['success_count']} file(s)"
+                    'message'] = f"Successfully modified {unique_files_count} file(s) with {results['success_count']} edit operation(s)"
             else:
                 response[
-                    'message'] = f"Processed with {results['success_count']} successful edit(s) and {results['error_count']} error(s)"
+                    'message'] = f"Modified {unique_files_count} file(s) with {results['success_count']} successful edit(s) and {results['error_count']} error(s)"
 
             return jsonify(response)
         except Exception as e:
