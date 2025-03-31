@@ -44,19 +44,13 @@ const StateManager = (function () {
         {
           id: "codingPrompt",
           name: "Coding Prompt",
-          description: "Expert code editing instructions for Claude",
+          description: "Expert code editing instructions with XML Search/Replace format",
           enabled: true,
         },
         {
           id: "planningPrompt",
           name: "Planning Prompt",
           description: "Instructions for planning complex code changes",
-          enabled: true,
-        },
-        {
-          id: "editingPrompt",
-          name: "Editing Prompt",
-          description: "Instructions for implementing code changes with SEARCH/REPLACE format",
           enabled: true,
         },
         {

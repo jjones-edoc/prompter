@@ -466,7 +466,7 @@ const DialogControllers = (function () {
     let selectedFiles = [];
     let selectedFolders = [];
     let includePlanningPrompt = false;
-    let includeEditingPrompt = false;
+    let includeCodeEditingPrompt = false;
     let includeDirectoryStructure = false;
 
     elements.forEach((element) => {
@@ -479,14 +479,10 @@ const DialogControllers = (function () {
           selectedFolders = element.folders || [];
           break;
         case "codingPrompt":
-          includePlanningPrompt = true;
-          includeEditingPrompt = true;
+          includeCodeEditingPrompt = true;
           break;
         case "planningPrompt":
           includePlanningPrompt = true;
-          break;
-        case "editingPrompt":
-          includeEditingPrompt = true;
           break;
         case "directoryStructure":
           includeDirectoryStructure = true;
@@ -499,7 +495,7 @@ const DialogControllers = (function () {
       selectedFolders: selectedFolders,
       userPrompt: userPrompt,
       includePlanningPrompt: includePlanningPrompt,
-      includeEditingPrompt: includeEditingPrompt,
+      includeEditingPrompt: includeCodeEditingPrompt, // Renamed variable but keeping API parameter name the same
       includeDirectoryStructure: includeDirectoryStructure,
     };
 
@@ -523,16 +519,10 @@ const DialogControllers = (function () {
       const promptContent = document.getElementById("prompt-content");
       if (promptContent) {
         promptContent.value = data.combined_content;
-
-        // Show the textarea
-        promptContent.classList.remove("d-none");
-
-        // Update show/hide button text
-        const toggleBtn = document.getElementById("toggle-prompt-btn");
-        if (toggleBtn) {
-          toggleBtn.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Hide';
-        }
       }
+      
+      // Do NOT automatically show the prompt section or change button text
+      // Let the toggle button continue to control visibility
 
       // Show success snackbar
       Utilities.showSnackBar("Prompt generated successfully!", "success");

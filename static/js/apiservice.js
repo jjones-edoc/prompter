@@ -129,18 +129,7 @@ const ApiService = (function () {
       });
   }
 
-  /**
-   * Fetch editing prompt from the server
-   * @returns {Promise} Promise resolving to editing prompt
-   */
-  function fetchEditingPrompt() {
-    return fetch("/api/editing-prompt")
-      .then((response) => response.json())
-      .catch((error) => {
-        console.error("Error fetching editing prompt:", error);
-        return { error: "Failed to load editing prompt." };
-      });
-  }
+  // Editing prompt fetching removed as it's consolidated with the coding prompt
 
   // generateCombinedContent function removed as it's no longer used
 
@@ -166,10 +155,16 @@ const ApiService = (function () {
 
     if (options.includeEditingPrompt) {
       promises.push(
-        fetchEditingPrompt().then((data) => {
-          promiseResults.editingPrompt = data.editing_prompt || "";
-          return data;
-        })
+        fetch("/api/editing-prompt")
+          .then((response) => response.json())
+          .then((data) => {
+            promiseResults.editingPrompt = data.editing_prompt || "";
+            return data;
+          })
+          .catch((error) => {
+            console.error("Error fetching editing prompt:", error);
+            return { error: "Failed to load editing prompt." };
+          })
       );
     }
 
@@ -327,7 +322,6 @@ function processClaudeResponse(claudeResponse) {
     fetchDirectoryStructureForPrompt,
     fetchFileData,
     fetchPlanningPrompt,
-    fetchEditingPrompt,
     generateModularContent,
     processClaudeResponse,
     searchFiles,

@@ -215,7 +215,7 @@ const GenerateDialog = (function () {
         }
         return desc;
       case "codingPrompt":
-        return "Expert code editing instructions";
+        return "Expert code editing instructions with XML format";
       case "planningPrompt":
         return "Instructions for planning complex code changes";
       case "editingPrompt":
