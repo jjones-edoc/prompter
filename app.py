@@ -28,4 +28,4 @@ def create_app(directory: str):
 if __name__ == '__main__':
     current_dir = os.getcwd()  # Get the current directory
     app = create_app(current_dir)
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
