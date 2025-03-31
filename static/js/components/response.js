@@ -1,24 +1,34 @@
 const ResponseDialog = (function () {
   function render(state) {
     console.log("Rendering response dialog with state:", state);
+    // Check if we're currently streaming a response
+    const isStreaming = state.isStreaming === true;
+    
     return `
       <div class="card shadow-sm mb-4">
         <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
           <h2 class="h4 mb-0">Claude's Response</h2>
+          ${isStreaming ? '<span class="badge bg-primary ms-2">Streaming...</span>' : ''}
         </div>
         <div class="card-body">
           <div class="mb-4">
-            <textarea id="claude-response" class="form-control" rows="15" placeholder="Paste Claude's response here...">${state.claudeResponse || ""}</textarea>
+            <textarea id="claude-response" class="form-control" rows="15" placeholder="${isStreaming ? 'Streaming response from AI...' : 'Paste Claude\'s response here...'}" ${isStreaming ? 'readonly' : ''}>${state.claudeResponse || ""}</textarea>
           </div>
 
           <div class="d-flex flex-wrap gap-2 justify-content-between">
             <div>
-              <button id="paste-from-clipboard-btn" class="btn btn-primary">
-                <i class="fas fa-paste me-1"></i> Paste from Clipboard
-              </button>
-              <button id="process-button" class="btn btn-primary ms-2">
-                <i class="fas fa-cogs me-1"></i> Process Response
-              </button>
+              ${isStreaming ? `
+                <button id="cancel-stream-btn" class="btn btn-danger">
+                  <i class="fas fa-stop-circle me-1"></i> Cancel Stream
+                </button>
+              ` : `
+                <button id="paste-from-clipboard-btn" class="btn btn-primary">
+                  <i class="fas fa-paste me-1"></i> Paste from Clipboard
+                </button>
+                <button id="process-button" class="btn btn-primary ms-2">
+                  <i class="fas fa-cogs me-1"></i> Process Response
+                </button>
+              `}
               <button id="done-button" class="btn btn-secondary ms-2">
                 <i class="fas fa-check me-1"></i> Back to Prompt
               </button>
@@ -133,25 +143,60 @@ const ResponseDialog = (function () {
   }
 
   function setupEventListeners(callbacks) {
-    // Paste from clipboard button
-    Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response");
+    // Get current state to check if we're streaming
+    const state = StateManager.getState().responseDialogState;
+    const isStreaming = state.isStreaming === true;
+    
+    if (!isStreaming) {
+      // Paste from clipboard button (only when not streaming)
+      Utilities.setupClipboardPaste("paste-from-clipboard-btn", "claude-response");
 
-    // Process button
-    Utilities.setupButtonListener("process-button", function () {
-      const responseText = document.getElementById("claude-response").value.trim();
+      // Process button (only when not streaming)
+      Utilities.setupButtonListener("process-button", function () {
+        const responseText = document.getElementById("claude-response").value.trim();
 
-      if (!responseText) {
-        Utilities.showSnackBar("Please paste Claude's response first.", "error");
-        return;
-      }
+        if (!responseText) {
+          Utilities.showSnackBar("Please paste Claude's response first.", "error");
+          return;
+        }
 
-      if (callbacks && callbacks.onProcess) {
-        callbacks.onProcess({ claudeResponse: responseText });
-      }
-    });
+        if (callbacks && callbacks.onProcess) {
+          callbacks.onProcess({ claudeResponse: responseText });
+        }
+      });
+    } else {
+      // Cancel stream button (only when streaming)
+      Utilities.setupButtonListener("cancel-stream-btn", function () {
+        // Close the stream if we have a controller
+        if (state.streamController && typeof state.streamController.close === 'function') {
+          state.streamController.close();
+        }
+        
+        // Update streaming state
+        StateManager.updateDialogState("responseDialog", {
+          isStreaming: false,
+          streamController: null,
+        });
+        
+        // Show info message
+        Utilities.showSnackBar("Streaming canceled", "info");
+        
+        // Re-render response dialog
+        DialogControllers.renderResponseDialog();
+      });
+    }
 
-    // Done button
+    // Done button (always available)
     Utilities.setupButtonListener("done-button", function () {
+      // If we're streaming, cancel the stream first
+      if (isStreaming && state.streamController) {
+        state.streamController.close();
+        StateManager.updateDialogState("responseDialog", {
+          isStreaming: false,
+          streamController: null,
+        });
+      }
+      
       if (callbacks && callbacks.onDone) {
         callbacks.onDone();
       }

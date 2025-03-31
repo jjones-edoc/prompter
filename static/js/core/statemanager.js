@@ -66,6 +66,8 @@ const StateManager = (function () {
     responseDialogState: {
       claudeResponse: "",
       processingResults: null,
+      isStreaming: false,
+      streamController: null,
     },
 
     // Current active dialog - default changed to "generate" but keeping "prompt" for now for compatibility
