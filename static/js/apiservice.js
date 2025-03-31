@@ -36,20 +36,20 @@ const ApiService = (function () {
    * @returns {Promise} Promise resolving to directory structure data for prompt generation
    */
   function fetchDirectoryStructureForPrompt() {
-    // For complete directory tree, we should use get_complete_folder_tree endpoint
-    return fetch("/api/get_complete_folder_tree", {
+    // Use the directory-structure endpoint which already provides formatted output
+    return fetch("/api/directory-structure", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        root_path: "", // Empty string for root directory
+        max_depth: 5, // Use default depth of 5
       }),
     })
       .then((response) => response.json())
       .then((data) => {
-        // Convert the tree format to the string format expected by the prompt
-        return formatDirectoryStructure(data);
+        // The directory structure is already formatted properly by the backend
+        return data.directory_structure;
       })
       .catch((error) => {
         console.error("Error fetching directory structure for prompt:", error);
@@ -57,31 +57,8 @@ const ApiService = (function () {
       });
   }
 
-  /**
-   * Format directory structure into a string representation
-   * @param {Object} tree - Directory tree structure
-   * @param {string} indent - Current indentation level
-   * @returns {string} Formatted directory structure
-   */
-  function formatDirectoryStructure(tree, indent = "") {
-    let result = `${indent}${tree.name}/\n`;
-
-    // Add all directories
-    if (tree.dirs && tree.dirs.length > 0) {
-      tree.dirs.forEach((dir) => {
-        result += formatDirectoryStructure(dir, indent + "  ");
-      });
-    }
-
-    // Add all files
-    if (tree.files && tree.files.length > 0) {
-      tree.files.forEach((file) => {
-        result += `${indent}  ${file.name}\n`;
-      });
-    }
-
-    return result;
-  }
+  // formatDirectoryStructure function removed as it's no longer needed
+  // Directory structure formatting is now handled by the backend
 
   /**
    * Fetch file data from the server
