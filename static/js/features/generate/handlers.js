@@ -165,81 +165,8 @@ const GenerateHandlers = (function () {
 
       // Send the prompt to AI model
       onSendToAI: function (promptContent) {
-        // Show loading snackbar
-        Utilities.showSnackBar("Sending prompt to AI model...", "info");
-
-        // Get settings from state
-        const settings = StateManager.getState().settingsDialogState;
-        const provider = settings.defaultProvider || "anthropic";
-        const reasoningEffort = settings.reasoningEffort || "medium";
-
-        // Update response dialog state to prepare for streaming
-        StateManager.updateDialogState("responseDialog", {
-          claudeResponse: "",
-          processingResults: null, // Reset any previous processing results
-          isStreaming: true, // Add streaming flag
-        });
-
-        // Go to response dialog immediately
-        StateManager.setCurrentDialog("response");
-        window.renderCurrentDialog();
-
-        // Then start the streaming process
-        const streamController = GenerateAPI.streamPromptToAI(
-          promptContent,
-          provider, // Use selected provider from settings
-          reasoningEffort, // Use selected reasoning effort from settings
-          // On chunk callback
-          (chunk) => {
-            // Get current response text
-            const state = StateManager.getState();
-            const currentText = state.responseDialogState.claudeResponse || "";
-
-            // Update response dialog state with new chunk
-            StateManager.updateDialogState("responseDialog", {
-              claudeResponse: currentText + chunk,
-            });
-
-            // Update textarea if it exists (in case user is already on response page)
-            const textArea = document.getElementById("claude-response");
-            if (textArea) {
-              textArea.value = currentText + chunk;
-              // Scroll to bottom to follow the new content
-              textArea.scrollTop = textArea.scrollHeight;
-            }
-          },
-          // On complete callback
-          () => {
-            // Update the streaming flag
-            StateManager.updateDialogState("responseDialog", {
-              isStreaming: false,
-            });
-
-            // Show success message
-            Utilities.showSnackBar("AI response received successfully!", "success");
-
-            // Re-render to update UI elements that depend on streaming state
-            window.renderCurrentDialog();
-          },
-          // On error callback
-          (error) => {
-            // Update streaming flag
-            StateManager.updateDialogState("responseDialog", {
-              isStreaming: false,
-            });
-
-            // Show error message
-            Utilities.showSnackBar("Error streaming AI response: " + error, "error");
-
-            // Re-render to update UI elements
-            window.renderCurrentDialog();
-          }
-        );
-
-        // Store stream controller in state so it can be canceled if needed
-        StateManager.updateDialogState("responseDialog", {
-          streamController: streamController,
-        });
+        // Delegate to the Response handlers for consistent streaming implementation
+        ResponseHandlers.startResponseStreaming(promptContent);
       },
     };
   }

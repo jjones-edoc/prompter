@@ -59,26 +59,22 @@ const App = (function () {
     const mainContent = document.getElementById("main-content");
     const state = StateManager.getState();
 
-    // Show loading state during transitions
     mainContent.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Loading...</div>';
 
     switch (state.currentDialog) {
       case "prompt":
-        // Use the new Prompt feature handlers instead of DialogControllers
         PromptHandlers.renderPromptDialog();
         break;
       case "fileSelector":
-        // Use the FileSelector feature handlers
         FileSelectorHandlers.renderFileSelectorDialog();
         break;
       case "generate":
         GenerateHandlers.renderGenerateDialog();
         break;
       case "response":
-        DialogControllers.renderResponseDialog();
+        ResponseHandlers.renderResponseDialog();
         break;
       case "settings":
-        // Use the new Settings feature handlers
         SettingsHandlers.renderSettingsDialog();
         break;
     }
@@ -91,5 +87,4 @@ const App = (function () {
   };
 })();
 
-// Export renderCurrentDialog to global scope for DialogControllers
 window.renderCurrentDialog = App.renderCurrentDialog;

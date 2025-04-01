@@ -1,4 +1,13 @@
+/**
+ * Response Dialog Module
+ * Handles UI rendering and event setup for the response dialog
+ */
 const ResponseDialog = (function () {
+  /**
+   * Render the response dialog
+   * @param {Object} state - Current response dialog state
+   * @returns {string} HTML content for the response dialog
+   */
   function render(state) {
     console.log("Rendering response dialog with state:", state);
     // Check if we're currently streaming a response
@@ -46,6 +55,11 @@ const ResponseDialog = (function () {
     `;
   }
 
+  /**
+   * Render processing results
+   * @param {Object} data - Processing results data
+   * @returns {string} HTML for processing results
+   */
   function renderProcessingResults(data) {
     if (!data) return "";
     
@@ -142,6 +156,10 @@ const ResponseDialog = (function () {
     `;
   }
 
+  /**
+   * Set up event listeners for the response dialog
+   * @param {Object} callbacks - Callback functions for dialog actions
+   */
   function setupEventListeners(callbacks) {
     // Get current state to check if we're streaming
     const state = StateManager.getState().responseDialogState;
@@ -182,7 +200,9 @@ const ResponseDialog = (function () {
         Utilities.showSnackBar("Streaming canceled", "info");
         
         // Re-render response dialog
-        DialogControllers.renderResponseDialog();
+        if (callbacks && callbacks.onRender) {
+          callbacks.onRender();
+        }
       });
     }
 
@@ -205,7 +225,8 @@ const ResponseDialog = (function () {
 
   // Public API
   return {
-    render: render,
-    setupEventListeners: setupEventListeners,
+    render,
+    setupEventListeners,
+    renderProcessingResults
   };
 })();
