@@ -1,6 +1,6 @@
 /**
- * Settings Dialog Component
- * Handles user settings such as theme and AI model selection
+ * Settings Dialog Module
+ * Handles UI rendering and user interaction for settings
  */
 const SettingsDialog = (function () {
   /**

@@ -78,7 +78,8 @@ const App = (function () {
         DialogControllers.renderResponseDialog();
         break;
       case "settings":
-        DialogControllers.renderSettingsDialog();
+        // Use the new Settings feature handlers
+        SettingsHandlers.renderSettingsDialog();
         break;
     }
   }
