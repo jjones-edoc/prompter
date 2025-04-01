@@ -169,7 +169,7 @@ const FileSelectorDialog = (function () {
       }" data-token-estimate="${tokenEstimate}" ${isSelected ? "checked" : ""} /></div>
               <div class="me-2 invisible"><i class="fas fa-caret-right fa-fw"></i></div>
               <div class="me-2"><i class="far fa-file fa-fw text-secondary"></i></div>
-              <div class="file-name text-truncate">${file.name}</div>
+              <div class="file-name text-truncate">${file.path}</div>
               <div class="ms-auto file-details d-flex">
                 <span class="badge bg-primary text-white me-2">${file.match_count} match${file.match_count !== 1 ? "es" : ""}</span>
                 <span class="badge bg-light text-secondary me-2">${file.type || ""}</span>
