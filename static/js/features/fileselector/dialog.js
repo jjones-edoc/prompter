@@ -483,34 +483,49 @@ const FileSelectorDialog = (function () {
    * @returns {number} Total token count
    */
   function calculateTotalTokens() {
-    let totalTokens = 0;
-    const countedFilePaths = new Set();
-
-    // Count folders first
-    document.querySelectorAll(".folder-checkbox:checked").forEach((checkbox) => {
-      const folderItem = checkbox.closest(".folder-item");
-      const tokenBadge = folderItem.querySelector(".token-badge");
-
-      if (tokenBadge) {
-        const folderTokens = parseInt(tokenBadge.getAttribute("data-folder-tokens") || 0);
-        if (!isNaN(folderTokens) && folderTokens > 0) {
-          totalTokens += folderTokens;
-
-          // Mark all files in this folder as counted
-          folderItem.querySelectorAll(".file-checkbox").forEach((fileCheckbox) => {
-            countedFilePaths.add(fileCheckbox.value);
-          });
-        }
-      }
-    });
-
-    // Count checked files not in counted folders
+    // Build a complete list of files to include
+    const filesToInclude = new Map(); // Map of file path to token count
+    
+    // First, add all individually checked files
     document.querySelectorAll(".file-checkbox:checked").forEach((checkbox) => {
       const filePath = checkbox.value;
-      if (countedFilePaths.has(filePath)) return;
-
       const tokenEstimate = parseInt(checkbox.getAttribute("data-token-estimate") || 0);
-      if (!isNaN(tokenEstimate)) totalTokens += tokenEstimate;
+      if (!isNaN(tokenEstimate)) {
+        filesToInclude.set(filePath, tokenEstimate);
+      }
+    });
+    
+    // Then process checked folders and their contents
+    const checkedFolders = Array.from(document.querySelectorAll(".folder-checkbox:checked"));
+    
+    // Sort folders by path length to process deeper folders first
+    // This ensures we have accurate token counts for subfolders
+    checkedFolders.sort((a, b) => {
+      const pathA = a.getAttribute("data-folder-path");
+      const pathB = b.getAttribute("data-folder-path");
+      return pathB.length - pathA.length; // Longer paths (deeper folders) first
+    });
+    
+    // Process each folder
+    checkedFolders.forEach((checkbox) => {
+      const folderPath = checkbox.getAttribute("data-folder-path");
+      const folderItem = checkbox.closest(".folder-item");
+      
+      // Add each file in this folder if not already included
+      folderItem.querySelectorAll(".file-checkbox").forEach((fileCheckbox) => {
+        const filePath = fileCheckbox.value;
+        const tokenEstimate = parseInt(fileCheckbox.getAttribute("data-token-estimate") || 0);
+        
+        if (!isNaN(tokenEstimate)) {
+          filesToInclude.set(filePath, tokenEstimate);
+        }
+      });
+    });
+    
+    // Calculate total tokens from all included files
+    let totalTokens = 0;
+    filesToInclude.forEach((tokenCount) => {
+      totalTokens += tokenCount;
     });
 
     // Update token count display
@@ -551,6 +566,12 @@ const FileSelectorDialog = (function () {
       checkboxes = document.querySelectorAll(".search-match .file-checkbox");
     } else {
       checkboxes = document.querySelectorAll(".file-checkbox, .folder-checkbox");
+    }
+
+    // If there are no checkboxes available (e.g., no search results), handle it gracefully
+    if (checkboxes.length === 0) {
+      selectAllBtn.innerHTML = '<i class="fas fa-check-square me-1"></i> Select All';
+      return;
     }
 
     const allChecked = Array.from(checkboxes).every((cb) => cb.checked);

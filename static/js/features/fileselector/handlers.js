@@ -182,6 +182,12 @@ const FileSelectorHandlers = (function () {
 
       // Update select all button
       FileSelectorDialog.updateSelectAllButton();
+      
+      // Reset the select all button text based on the search results
+      const selectAllBtn = document.getElementById("select-all-btn");
+      if (selectAllBtn && data.count > 0) {
+        selectAllBtn.innerHTML = '<i class="fas fa-check-square me-1"></i> Select All';
+      }
     });
   }
 
