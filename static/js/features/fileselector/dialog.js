@@ -214,6 +214,13 @@ const FileSelectorDialog = (function () {
     });
 
     // Select all button
+    // First remove any existing event listeners to prevent duplicate firing
+    const selectAllBtn = document.getElementById("select-all-btn");
+    if (selectAllBtn) {
+      const clone = selectAllBtn.cloneNode(true);
+      selectAllBtn.parentNode.replaceChild(clone, selectAllBtn);
+    }
+
     Utilities.setupButtonListener("select-all-btn", function () {
       const isSearchActive = !document.getElementById("search-status").classList.contains("d-none");
       let checkboxes;
@@ -485,7 +492,7 @@ const FileSelectorDialog = (function () {
   function calculateTotalTokens() {
     // Build a complete list of files to include
     const filesToInclude = new Map(); // Map of file path to token count
-    
+
     // First, add all individually checked files
     document.querySelectorAll(".file-checkbox:checked").forEach((checkbox) => {
       const filePath = checkbox.value;
@@ -494,10 +501,10 @@ const FileSelectorDialog = (function () {
         filesToInclude.set(filePath, tokenEstimate);
       }
     });
-    
+
     // Then process checked folders and their contents
     const checkedFolders = Array.from(document.querySelectorAll(".folder-checkbox:checked"));
-    
+
     // Sort folders by path length to process deeper folders first
     // This ensures we have accurate token counts for subfolders
     checkedFolders.sort((a, b) => {
@@ -505,23 +512,23 @@ const FileSelectorDialog = (function () {
       const pathB = b.getAttribute("data-folder-path");
       return pathB.length - pathA.length; // Longer paths (deeper folders) first
     });
-    
+
     // Process each folder
     checkedFolders.forEach((checkbox) => {
       const folderPath = checkbox.getAttribute("data-folder-path");
       const folderItem = checkbox.closest(".folder-item");
-      
+
       // Add each file in this folder if not already included
       folderItem.querySelectorAll(".file-checkbox").forEach((fileCheckbox) => {
         const filePath = fileCheckbox.value;
         const tokenEstimate = parseInt(fileCheckbox.getAttribute("data-token-estimate") || 0);
-        
+
         if (!isNaN(tokenEstimate)) {
           filesToInclude.set(filePath, tokenEstimate);
         }
       });
     });
-    
+
     // Calculate total tokens from all included files
     let totalTokens = 0;
     filesToInclude.forEach((tokenCount) => {

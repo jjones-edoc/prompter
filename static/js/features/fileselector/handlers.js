@@ -177,6 +177,9 @@ const FileSelectorHandlers = (function () {
       // Update UI with search results
       FileSelectorDialog.updateSearchResults(StateManager.getState().fileSelectorState.searchResults, state.fileSelectorState.selectedFiles);
 
+      // Remove any existing event listeners before re-setting up
+      cleanupEventListeners();
+      
       // Rebind checkbox events by re-setting up event listeners
       FileSelectorDialog.setupEventListeners(createFileSelectorCallbacks());
 
@@ -201,6 +204,9 @@ const FileSelectorHandlers = (function () {
 
     // Reset search state
     StateManager.updateDialogState("fileSelector", { searchResults: null });
+    
+    // Clean up event listeners before re-rendering
+    cleanupEventListeners();
 
     // Re-render file selector with full tree
     renderFileSelectorDialog();
@@ -229,6 +235,40 @@ const FileSelectorHandlers = (function () {
     });
   }
 
+  /**
+   * Clean up event listeners before re-binding
+   * Prevents duplicate event handlers
+   */
+  function cleanupEventListeners() {
+    // Clean up select all button
+    const selectAllBtn = document.getElementById("select-all-btn");
+    if (selectAllBtn) {
+      const clone = selectAllBtn.cloneNode(true);
+      selectAllBtn.parentNode.replaceChild(clone, selectAllBtn);
+    }
+    
+    // Clean up search button
+    const searchButton = document.getElementById("search-button");
+    if (searchButton) {
+      const clone = searchButton.cloneNode(true);
+      searchButton.parentNode.replaceChild(clone, searchButton);
+    }
+    
+    // Clean up clear search button
+    const clearSearchBtn = document.getElementById("clear-search");
+    if (clearSearchBtn) {
+      const clone = clearSearchBtn.cloneNode(true);
+      clearSearchBtn.parentNode.replaceChild(clone, clearSearchBtn);
+    }
+    
+    // Clean up back button
+    const backButton = document.getElementById("back-button");
+    if (backButton) {
+      const clone = backButton.cloneNode(true);
+      backButton.parentNode.replaceChild(clone, backButton);
+    }
+  }
+
   // Public API
   return {
     renderFileSelectorDialog,
@@ -236,5 +276,6 @@ const FileSelectorHandlers = (function () {
     clearSearch,
     updateFolderTokenCount,
     createFileSelectorCallbacks,
+    cleanupEventListeners,
   };
 })();
