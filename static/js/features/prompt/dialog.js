@@ -1,4 +1,13 @@
+/**
+ * Prompt Dialog Module
+ * Handles rendering and event setup for the prompt dialog
+ */
 const PromptDialog = (function () {
+  /**
+   * Render the prompt dialog
+   * @param {Object} state - Current prompt dialog state
+   * @returns {string} HTML content for the prompt dialog
+   */
   function render(state) {
     // Determine if we're editing or creating a new prompt
     const isEditing = state.editingElementIndex !== undefined && state.editingElementIndex !== null && state.editingElementIndex >= 0;
@@ -31,6 +40,10 @@ const PromptDialog = (function () {
     `;
   }
 
+  /**
+   * Set up event listeners for the prompt dialog
+   * @param {Object} callbacks - Callback functions for dialog actions
+   */
   function setupEventListeners(callbacks) {
     // Auto-resize textarea
     const promptTextarea = document.getElementById("prompt-text");
@@ -81,7 +94,7 @@ const PromptDialog = (function () {
 
   // Public API
   return {
-    render: render,
-    setupEventListeners: setupEventListeners,
+    render,
+    setupEventListeners,
   };
 })();

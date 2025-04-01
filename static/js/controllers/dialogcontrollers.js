@@ -3,61 +3,7 @@
  * Contains controller functions for all dialogs
  */
 const DialogControllers = (function () {
-  /**
-   * Render the prompt dialog
-   */
-  function renderPromptDialog() {
-    const mainContent = document.getElementById("main-content");
-    const state = StateManager.getState();
-    mainContent.innerHTML = PromptDialog.render(state.promptDialogState);
-
-    PromptDialog.setupEventListeners({
-      onSubmit: function (promptData) {
-        const editingElementIndex = state.promptDialogState.editingElementIndex;
-        const isCreatingNew = state.promptDialogState.isCreatingNew;
-
-        // Only proceed if the prompt has content
-        if (promptData.prompt && promptData.prompt.trim() !== "") {
-          // Check if we're editing an existing prompt element
-          if (!isCreatingNew && editingElementIndex !== undefined && editingElementIndex !== null && editingElementIndex >= 0) {
-            // Update existing element
-            StateManager.updatePromptElement(editingElementIndex, {
-              content: promptData.prompt,
-            });
-          } else {
-            // Add new user prompt element
-            StateManager.addPromptElement({
-              type: "userPrompt",
-              id: `userPrompt-${Date.now()}`,
-              content: promptData.prompt,
-            });
-          }
-        }
-
-        // Reset editing state
-        StateManager.updateDialogState("promptDialog", {
-          editingElementIndex: null,
-          isCreatingNew: false,
-        });
-
-        // Go back to generate dialog
-        StateManager.setCurrentDialog("generate");
-        renderCurrentDialog();
-      },
-
-      onCancel: function () {
-        // Reset editing state before returning to generate dialog
-        StateManager.updateDialogState("promptDialog", {
-          editingElementIndex: null,
-          isCreatingNew: false,
-        });
-
-        // Go back to generate dialog without saving changes
-        StateManager.setCurrentDialog("generate");
-        renderCurrentDialog();
-      },
-    });
-  }
+  // renderPromptDialog has been moved to PromptHandlers.renderPromptDialog
 
   /**
    * Render the response dialog
@@ -295,7 +241,6 @@ const DialogControllers = (function () {
 
   // Public API
   return {
-    renderPromptDialog,
     renderResponseDialog,
     renderSettingsDialog,
     processClaudeResponse,

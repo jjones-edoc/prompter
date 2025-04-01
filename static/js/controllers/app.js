@@ -64,7 +64,8 @@ const App = (function () {
 
     switch (state.currentDialog) {
       case "prompt":
-        DialogControllers.renderPromptDialog();
+        // Use the new Prompt feature handlers instead of DialogControllers
+        PromptHandlers.renderPromptDialog();
         break;
       case "fileSelector":
         // Use the FileSelector feature handlers
