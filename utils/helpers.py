@@ -29,6 +29,7 @@ def get_language_type(file_path):
         '.md': 'markdown',
         '.sh': 'bash',
         '.sql': 'sql',
+        '.pas': 'pascal',
         # Add more mappings as needed
     }
     import os
