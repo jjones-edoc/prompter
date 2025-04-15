@@ -36,7 +36,12 @@ class Scanner:
         '.ini', '.conf', '.cfg', '.html', '.css', '.cpp', '.h', '.c',
         '.java', '.rs', '.go', '.ts', '.jsx', '.tsx', '.vue', '.rb',
         '.php', '.pl', '.sh', '.bash', '.sql', '.xml', '.toml', '.cs',
-        '.pas', '.yml', 'Dockerfile'
+        '.pas', '.yml', '.gitignore', '.dockerignore', '.env'
+    }
+
+    # Add special filenames without extensions that should be treated as text files
+    SPECIAL_FILENAMES = {
+        'Dockerfile', 'Makefile', 'README', 'LICENSE', '.gitignore', '.dockerignore'
     }
 
     def __init__(self, root_dir: str):
@@ -50,12 +55,46 @@ class Scanner:
             self.has_tiktoken = False
 
     def _should_exclude(self, path: str) -> bool:
-        """Check if a path should be excluded based on applicable .gitignore rules."""
+        """
+        Check if a path should be excluded based on applicable .gitignore rules.
+        Special directories and files are explicitly included regardless of gitignore settings.
+        """
+        # Get the basename (filename or directory name)
+        basename = os.path.basename(path)
+
+        # Special case: Always include these important dot directories and their contents
+        important_dotdirs = ['.github', '.circleci',
+                             '.gitlab', '.gitlab-ci', '.azure', '.devcontainer']
+        for dotdir in important_dotdirs:
+            if dotdir in path:
+                return False
+
+        # Special case: Always include these important dot files
+        important_dotfiles = ['.github', '.dockerignore', '.editorconfig',
+                              '.eslintrc', '.prettierrc', '.stylelintrc', '.babelrc']
+        if basename in important_dotfiles:
+            return False
+
+        # Special case: Always include config files for CI/CD
+        if os.path.splitext(basename)[1].lower() in ['.yml', '.yaml'] and ('ci' in basename.lower() or 'workflow' in basename.lower()):
+            return False
+
+        # For other paths, defer to the gitignore manager
         return self.gitignore_manager.should_exclude(path)
 
     def _is_text_file(self, path: str) -> bool:
-        """Check if the file is a supported text file based on extension."""
+        """
+        Check if the file is a supported text file based on extension or special filename.
+        """
+        # Get the extension and filename
+        filename = os.path.basename(path)
         ext = os.path.splitext(path)[1].lower()
+
+        # Check if it's a special filename without extension (like Dockerfile)
+        if filename in self.SPECIAL_FILENAMES:
+            return True
+
+        # Check if it has a supported extension
         return ext in self.SUPPORTED_TEXT_EXTENSIONS
 
     def _is_searchable_file(self, file_path: str) -> bool:
@@ -139,8 +178,10 @@ class Scanner:
                 rel_path = rel_path.replace(os.sep, '/')
 
                 if entry.is_dir():
-                    # Skip empty directories or directories with no files in subtree
-                    if self.is_dir_empty(rel_path) or not self.has_files_in_subtree(rel_path):
+                    # Check if this directory has any files in its subtree
+                    # Note: We're only checking has_files_in_subtree now instead of skipping
+                    # directories that are empty themselves but might have files in subdirectories
+                    if not self.has_files_in_subtree(rel_path):
                         continue
 
                     # For directories, get token count recursively
@@ -153,7 +194,7 @@ class Scanner:
                         'token_count': dir_token_count
                     })
                 else:
-                    # Skip non-text files
+                    # Check if it's a text file or special file like Dockerfile
                     if not self._is_text_file(entry.path):
                         continue
 
@@ -162,12 +203,22 @@ class Scanner:
                     # Get last modified time
                     last_modified = int(os.path.getmtime(entry.path))
 
+                    # Determine file type - handle special cases like Dockerfile
+                    filename = entry.name
+                    if '.' in filename:
+                        file_type = os.path.splitext(
+                            filename)[1][1:] or 'unknown'
+                    elif filename in self.SPECIAL_FILENAMES:
+                        file_type = filename.lower()  # Use lowercase filename as type
+                    else:
+                        file_type = 'unknown'
+
                     files_list.append({
                         'name': entry.name,
                         'path': rel_path,
                         'full_path': entry.path,
                         'size': entry.stat().st_size,
-                        'type': os.path.splitext(entry.name)[1][1:] or 'unknown',
+                        'type': file_type,
                         'token_count': token_count,
                         'last_modified': last_modified
                     })
@@ -176,6 +227,9 @@ class Scanner:
             print(f"Error {error_context} {dir_path}: {str(e)}")
 
         return dirs_list, files_list
+
+    # The rest of the Scanner class methods remain unchanged...
+    # (get_items, get_directory_token_count, is_dir_empty, has_files_in_subtree, get_file_contents, search_files, get_folder_contents)
 
     def get_items(self, subpath: str = "") -> Dict[str, Any]:
         """
@@ -275,6 +329,7 @@ class Scanner:
     def has_files_in_subtree(self, dir_path: str) -> bool:
         """
         Check if a directory or any of its subdirectories contain files (not just folders).
+        Efficiently checks all nested subdirectories recursively.
 
         Args:
             dir_path: Relative path from root directory
@@ -285,8 +340,9 @@ class Scanner:
         full_path = os.path.join(self.root_dir, dir_path)
 
         try:
+            # os.walk already does a recursive traversal of all subdirectories
             for root, dirs, files in os.walk(full_path):
-                # Filter out excluded directories
+                # Filter out excluded directories (this modifies dirs in-place)
                 dirs[:] = [d for d in dirs if not self._should_exclude(
                     os.path.join(root, d))]
 
@@ -294,13 +350,13 @@ class Scanner:
                 valid_files = [f for f in files if not self._should_exclude(
                     os.path.join(root, f))]
 
-                # If any non-excluded text files remain, the subtree has files
+                # Check each file in this directory
                 for file in valid_files:
                     file_path = os.path.join(root, file)
                     if self._is_text_file(file_path):
                         return True
 
-            # If we reach here, no valid files were found in the subtree
+            # If we've gone through all subdirectories and found no valid files
             return False
 
         except Exception as e:
