@@ -30,6 +30,8 @@ def get_language_type(file_path):
         '.sh': 'bash',
         '.sql': 'sql',
         '.pas': 'pascal',
+        '.yml': 'yaml',
+        'Dockerfile': 'dockerfile',
         # Add more mappings as needed
     }
     import os

@@ -35,7 +35,8 @@ class Scanner:
         '.txt', '.py', '.js', '.json', '.md', '.csv', '.yaml', '.yml',
         '.ini', '.conf', '.cfg', '.html', '.css', '.cpp', '.h', '.c',
         '.java', '.rs', '.go', '.ts', '.jsx', '.tsx', '.vue', '.rb',
-        '.php', '.pl', '.sh', '.bash', '.sql', '.xml', '.toml', '.cs', '.pas'
+        '.php', '.pl', '.sh', '.bash', '.sql', '.xml', '.toml', '.cs',
+        '.pas', '.yml', 'Dockerfile'
     }
 
     def __init__(self, root_dir: str):
