@@ -62,6 +62,12 @@ const StateManager = (function () {
           enabled: true,
         },
         {
+          id: "refactoringPrompt",
+          name: "Refactoring Prompt",
+          description: "Instructions for improving code organization and quality",
+          enabled: true,
+        },
+        {
           id: "directoryStructure",
           name: "Directory Structure",
           description: "Project directory/file structure to provide context",

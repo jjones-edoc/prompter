@@ -193,6 +193,7 @@ const GenerateHandlers = (function () {
     let selectedFolders = [];
     let includePlanningPrompt = false;
     let includeCodeEditingPrompt = false;
+    let includeRefactoringPrompt = false;
     let includeDirectoryStructure = false;
 
     elements.forEach((element) => {
@@ -210,6 +211,9 @@ const GenerateHandlers = (function () {
         case "planningPrompt":
           includePlanningPrompt = true;
           break;
+        case "refactoringPrompt":
+          includeRefactoringPrompt = true;
+          break;
         case "directoryStructure":
           includeDirectoryStructure = true;
           break;
@@ -222,6 +226,7 @@ const GenerateHandlers = (function () {
       userPrompt: userPrompt,
       includePlanningPrompt: includePlanningPrompt,
       includeEditingPrompt: includeCodeEditingPrompt, // Renamed variable but keeping API parameter name the same
+      includeRefactoringPrompt: includeRefactoringPrompt,
       includeDirectoryStructure: includeDirectoryStructure,
     };
 

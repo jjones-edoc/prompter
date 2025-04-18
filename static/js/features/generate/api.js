@@ -125,6 +125,11 @@ const GenerateAPI = (function () {
         if (options.includeEditingPrompt) {
           combinedContent += GeneratePrompts.getEditingPrompt() + "\n\n";
         }
+        
+        // Add refactoring prompt if requested
+        if (options.includeRefactoringPrompt) {
+          combinedContent += GeneratePrompts.getRefactoringPrompt() + "\n\n";
+        }
 
         // Add directory structure if requested
         if (options.includeDirectoryStructure && promiseResults.directoryStructure) {

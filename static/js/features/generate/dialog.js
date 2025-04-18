@@ -193,6 +193,8 @@ const GenerateDialog = (function () {
         return "fa-sitemap";
       case "editingPrompt":
         return "fa-edit";
+      case "refactoringPrompt":
+        return "fa-code-branch";
       case "directoryStructure":
         return "fa-folder-tree";
       default:
@@ -226,6 +228,8 @@ const GenerateDialog = (function () {
         return "Planning Prompt";
       case "editingPrompt":
         return "Editing Prompt";
+      case "refactoringPrompt":
+        return "Refactoring Prompt";
       case "directoryStructure":
         return "Directory Structure";
       default:
@@ -262,6 +266,8 @@ const GenerateDialog = (function () {
         return "Instructions for planning complex code changes";
       case "editingPrompt":
         return "Instructions for implementing code changes";
+      case "refactoringPrompt":
+        return "Instructions for improving code organization and quality";
       case "directoryStructure":
         return "Project directory/file structure";
       default:
