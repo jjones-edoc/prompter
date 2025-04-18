@@ -116,9 +116,63 @@ const GeneratePrompts = (function () {
   Please provide a clear, step-by-step plan before making any actual code changes.`;
   }
 
+  /**
+   * Returns the continuation prompt template
+   * @returns {string} The continuation prompt text
+   */
+  function getContinuationPrompt() {
+    return `Please continue to the next step. Use the XML syntax when recommending code changes. Remember to wait for confirmation before proceeding with the next step.`;
+  }
+
+  /**
+   * Returns the refactoring prompt template
+   * @returns {string} The refactoring prompt text
+   */
+  function getRefactoringPrompt() {
+    return `### Refactoring Instructions
+  
+  ## Refactoring Guidelines:
+  
+  1. **Select ONE Specific Item to Refactor**:
+     - Analyze the provided file and identify ONE clear opportunity for refactoring.
+     - Focus on code that shows duplication, excessive complexity, or poor organization.
+     - Explain your reasoning for choosing this specific refactoring opportunity.
+  
+  2. **Possible Refactoring Types**:
+     - Extract shared code into a common function
+     - Separate concerns into different files
+     - Improve variable/function naming
+     - Simplify complex conditionals
+     - Reduce nesting levels
+     - Apply design patterns where appropriate
+     - Improve code organization
+  
+  3. **Preserve Functionality**:
+     - CRITICAL: Ensure that all existing functionality is preserved exactly as is.
+     - Do not introduce any behavioral changes to the code.
+     - The refactored code must produce identical outputs for all possible inputs.
+     - Do not add new features, enhancements, or capabilities.
+  
+  4. **Code Optimization Guidelines**:
+     - You may optimize for readability, maintainability, and performance.
+     - Optimizations must not alter the behavior of the code.
+     - Document any subtle optimizations that might appear to change behavior but don't.
+  
+  5. **Implementation Approach**:
+     - First identify the item that will have the most impact on code quality.
+     - Describe the refactoring you plan to make and why.
+     - Detail your strategy for preserving functionality.
+     - Use the appropriate XML tags for your changes.
+     - If creating new files, explain how they integrate with existing code.  
+  
+  Remember: The goal is to improve code quality while maintaining identical functionality.`;
+  }
+
   // Public API
   return {
     getEditingPrompt,
     getPlanningPrompt,
+    getContinuationPrompt,
+    getRefactoringPrompt,
   };
 })();
