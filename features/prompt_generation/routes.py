@@ -1,7 +1,5 @@
 from flask import render_template, request, session, redirect, url_for, jsonify
 from utils.helpers import get_language_type
-from features.prompt_generation.planning_prompt import planning_prompt
-from features.prompt_generation.editing_prompt import editing_prompt
 from features.prompt_generation.helpers import _collect_files_recursive, generate_directory_structure
 
 
@@ -71,18 +69,4 @@ def register_prompt_generation_routes(app, scanner):
         # Return file data as JSON
         return jsonify({
             'files': file_data
-        })
-
-    @app.route('/api/planning-prompt', methods=['GET'])
-    def api_planning_prompt():
-        """API endpoint to get the planning prompt"""
-        return jsonify({
-            'planning_prompt': planning_prompt()
-        })
-
-    @app.route('/api/editing-prompt', methods=['GET'])
-    def api_editing_prompt():
-        """API endpoint to get the editing/coding prompt"""
-        return jsonify({
-            'editing_prompt': editing_prompt()
         })

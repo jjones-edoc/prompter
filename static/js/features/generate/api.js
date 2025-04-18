@@ -67,12 +67,7 @@ const GenerateAPI = (function () {
    * @returns {Promise} Promise resolving to planning prompt
    */
   function fetchPlanningPrompt() {
-    return fetch("/api/planning-prompt")
-      .then((response) => response.json())
-      .catch((error) => {
-        console.error("Error fetching planning prompt:", error);
-        return { error: "Failed to load planning prompt." };
-      });
+    return GeneratePrompts.getEditingPrompt();
   }
 
   /**
@@ -80,15 +75,7 @@ const GenerateAPI = (function () {
    * @returns {Promise} Promise resolving to editing prompt
    */
   function fetchEditingPrompt() {
-    return fetch("/api/editing-prompt")
-      .then((response) => response.json())
-      .then((data) => {
-        return { editingPrompt: data.editing_prompt || "" };
-      })
-      .catch((error) => {
-        console.error("Error fetching editing prompt:", error);
-        return { error: "Failed to load editing prompt." };
-      });
+    return GeneratePrompts.getPlanningPrompt();
   }
 
   /**
@@ -100,25 +87,6 @@ const GenerateAPI = (function () {
     // Create an array to hold all our promises
     const promises = [];
     let promiseResults = {};
-
-    // Add promises for the elements we need
-    if (options.includePlanningPrompt) {
-      promises.push(
-        fetchPlanningPrompt().then((data) => {
-          promiseResults.planningPrompt = data.planning_prompt || "";
-          return data;
-        })
-      );
-    }
-
-    if (options.includeEditingPrompt) {
-      promises.push(
-        fetchEditingPrompt().then((data) => {
-          promiseResults.editingPrompt = data.editingPrompt || "";
-          return data;
-        })
-      );
-    }
 
     if (options.includeDirectoryStructure) {
       promises.push(
@@ -149,13 +117,13 @@ const GenerateAPI = (function () {
         let combinedContent = "";
 
         // Add planning prompt if requested
-        if (options.includePlanningPrompt && promiseResults.planningPrompt) {
-          combinedContent += promiseResults.planningPrompt + "\n\n";
+        if (options.includePlanningPrompt) {
+          combinedContent += GeneratePrompts.getPlanningPrompt() + "\n\n";
         }
 
         // Add editing prompt if requested
-        if (options.includeEditingPrompt && promiseResults.editingPrompt) {
-          combinedContent += promiseResults.editingPrompt + "\n\n";
+        if (options.includeEditingPrompt) {
+          combinedContent += GeneratePrompts.getEditingPrompt() + "\n\n";
         }
 
         // Add directory structure if requested
