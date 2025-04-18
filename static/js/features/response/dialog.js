@@ -16,8 +16,13 @@ const ResponseDialog = (function () {
     return `
       <div class="card shadow-sm mb-4">
         <div class="card-header card-header-themed d-flex justify-content-between align-items-center">
-          <h2 class="h4 mb-0">Claude's Response</h2>
-          ${isStreaming ? '<span class="badge bg-primary ms-2">Streaming...</span>' : ''}
+          <div class="d-flex align-items-center">
+            <h2 class="h4 mb-0">Claude's Response</h2>
+            ${isStreaming ? '<span class="badge bg-primary ms-2">Streaming...</span>' : ''}
+          </div>
+          <div class="header-button" id="copy-continuation-prompt-btn" title="Copy Continuation Prompt">
+            <i class="fas fa-sync-alt"></i>
+          </div>
         </div>
         <div class="card-body">
           <div class="mb-4">
@@ -164,6 +169,22 @@ const ResponseDialog = (function () {
     // Get current state to check if we're streaming
     const state = StateManager.getState().responseDialogState;
     const isStreaming = state.isStreaming === true;
+
+    // Copy continuation prompt button (always available)
+    Utilities.setupButtonListener("copy-continuation-prompt-btn", function () {
+      // Get the continuation prompt from the GeneratePrompts module
+      const continuationPrompt = GeneratePrompts.getContinuationPrompt();
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(continuationPrompt)
+        .then(() => {
+          Utilities.showSnackBar("Continuation prompt copied to clipboard!", "success");
+        })
+        .catch((err) => {
+          console.error('Failed to copy text: ', err);
+          Utilities.showSnackBar("Failed to copy to clipboard", "error");
+        });
+    });
     
     if (!isStreaming) {
       // Paste from clipboard button (only when not streaming)

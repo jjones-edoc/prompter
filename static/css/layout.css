@@ -52,3 +52,17 @@
   font-size: 1.1rem;
   color: var(--bs-primary);
 }
+
+/* Add tooltip hover effect */
+.header-button:hover::after {
+  content: attr(title);
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1001;
+  transform: translateY(24px);
+}
