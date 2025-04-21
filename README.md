@@ -43,7 +43,7 @@ Prompter is a simple web application that helps you create prompts for Claude by
    python app.py
    ```
 
-2. Open your browser and go to `http://127.0.0.1:5000`
+2. Open your browser and go to `http://127.0.0.1:6600`
 
 3. You'll see a file browser interface where you can:
 

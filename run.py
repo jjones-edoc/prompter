@@ -16,11 +16,11 @@ app = create_app(str(current_dir))
 
 
 def open_browser():
-    webbrowser.open_new('http://127.0.0.1:5000')
+    webbrowser.open_new('http://127.0.0.1:6600')
 
 
 if __name__ == '__main__':
     if os.environ.get('WERKZEUG_RUN_MAIN') is None:
         threading.Timer(1, open_browser).start()
 
-    app.run(debug=True)
+    app.run(debug=True, port=6600)
